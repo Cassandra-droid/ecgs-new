@@ -1,0 +1,66 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  User
+  Admin
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  name                 String
+  email                String    @unique
+  password             String
+  emailVerified        DateTime?
+  isEmailVerified      Boolean?  @default(false)
+  image                String?
+  role                 UserRole  @default(User)
+  verificationCode     String?
+  resetPasswordToken   String?   @unique
+  resetPasswordExpires DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  profile UserProfile?
+}
+
+model UserProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  age               Int
+  gender            String
+  educationLevel    String
+  experience        String
+  careerPreferences String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  skills    Skill[]    @relation("UserProfileSkills")
+  interests Interest[] @relation("UserProfileInterests")
+}
+
+model Skill {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users UserProfile[] @relation("UserProfileSkills")
+}
+
+model Interest {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users UserProfile[] @relation("UserProfileInterests")
+}
