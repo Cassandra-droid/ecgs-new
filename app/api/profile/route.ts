@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getSession, signJwtToken } from "@/lib/auth"
+import { getServerSession, signJwtToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession()
+    const session = await getServerSession()
 
     if (!session || !session.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
