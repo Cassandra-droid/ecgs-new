@@ -10,6 +10,31 @@ interface JWTPayload {
   role: string;
   [key: string]: string | number | boolean;
 }
+export async function signJwtToken(payload: any) {
+  try {
+    const token = await new SignJWT(payload)
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .sign(new TextEncoder().encode(JWT_SECRET))
+
+    return token
+  } catch (error) {
+    console.error("Error signing JWT token:", error)
+    throw error
+  }
+}
+
+export async function verifyJwtToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(JWT_SECRET))
+    console.log("Verified JWT payload:", JSON.stringify(payload))
+    return payload
+  } catch (error) {
+    console.error("Error verifying JWT token:", error)
+    return null
+  }
+}
 
 export async function hashPassword(password: string): Promise<string> {
   return hash(password, 10);
