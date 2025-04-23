@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getServerSession } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
   try {
-    const session = await getSession()
+    const session = await getServerSession()
 
     if (!session) {
       return NextResponse.json({ session: null, message: "No session found" })
