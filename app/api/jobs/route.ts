@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import { query } from "@/lib/db"
 import type { RowDataPacket, ResultSetHeader } from "mysql2"
 
 // GET all jobs
