@@ -12,6 +12,7 @@ const config = {
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
   ],
+  
   prefix: "",
   theme: {
     screens: {
@@ -114,6 +115,9 @@ const config = {
         },
         ".box-shadow": {
           "box-shadow": ".5rem .5rem 1.5rem rgba(0,0,0,0.1)",
+        },
+        ".border-border": {
+          borderColor: "hsl(var(--border))",
         },
         ".flex-center-center": {
           display: "flex",
