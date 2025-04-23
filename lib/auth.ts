@@ -16,7 +16,7 @@ export async function signJwtToken(payload: any) {
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("7d")
-      .sign(new TextEncoder().encode(JWT_SECRET))
+      .sign(JWT_SECRET)
 
     return token
   } catch (error) {
@@ -27,7 +27,7 @@ export async function signJwtToken(payload: any) {
 
 export async function verifyJwtToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(JWT_SECRET))
+    const { payload } = await jwtVerify(token, JWT_SECRET)
     console.log("Verified JWT payload:", JSON.stringify(payload))
     return payload
   } catch (error) {
