@@ -38,7 +38,7 @@ export default function CareerPage() {
       console.log("Submitting form data:", formData);
 
       // Call the API route to submit the form data to the backend
-      const response = await fetch("/api/predict", {
+      const response = await fetch("https://backend-cdie.onrender.com/api/predict", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

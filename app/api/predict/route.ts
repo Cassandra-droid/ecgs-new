@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const formData: CareerFormData = await request.json()
 
     // Replace with your actual backend API endpoint
-    const response = await fetch("http://localhost:8000/predict/", {
+    const response = await fetch("https://backend-cdie.onrender.com/api/predict/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
