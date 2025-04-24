@@ -35,15 +35,22 @@ export default function JobList() {
     <div>
       <h2 className="text-xl font-bold mb-4">Job Listings</h2>
       {jobs.length > 0 ? (
-        <ul className="space-y-4">
-          {jobs.map((job) => (
-            <li key={job.id} className="border p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold">{job.title}</h3>
-              <p>Company: {job.company}</p>
-              <p>Location: {job.location}</p>
-            </li>
-          ))}
-        </ul>
+          <ul className="space-y-4">
+            {jobs.map((job) => (
+              <li key={job.id} className="border p-4 rounded-lg shadow">
+                <h3 className="text-lg font-semibold">{job.title}</h3>
+                  <p>Company: {job.company}</p>
+                  <p>Location: {job.location}</p>
+                  <a href={job.job_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    View Job
+                  </a>
+              </li>
+            ))}
+          </ul>
+
       ) : (
         <p>No jobs found.</p>
       )}
