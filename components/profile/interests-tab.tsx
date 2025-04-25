@@ -47,7 +47,7 @@ export default function InterestsTab({ interests, userId }: InterestsTabProps) {
     setIsLoading(true)
 
     try {
-      await updateUserInterests(userId, userInterests)
+      await updateUserInterests(userInterests.map((interest) => interest.name))
       toast({
         title: "Interests updated",
         description: "Your interests have been updated successfully.",

@@ -6,7 +6,7 @@ import {
   userProfileSchema,
   userRegistrationSchema,
 } from "@/validation/schemas";
-import { UserRole } from "@prisma/client";
+
 import * as z from "zod";
 
 // --------------------------- FORMS TYPES--------------------------------------------------------------------------------------

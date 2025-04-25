@@ -1,47 +1,53 @@
-import { getCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
-import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth"
+import bcrypt from "bcryptjs"
+import { NextResponse } from "next/server"
+import pool from "@/lib/db"
 
 export async function PUT(request: Request) {
   try {
-    const { currentPassword, newPassword } = await request.json();
-
-    const currentUser = await getCurrentUser();
+    const { currentPassword, newPassword } = await request.json()
+    const currentUser = await getCurrentUser()
 
     if (!currentUser) {
-      return new Response("You are not authenticated!", { status: 401 });
+      return new Response("You are not authenticated!", { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
-    });
+    const client = await pool.connect()
 
-    if (!user) {
-      return new NextResponse("User not found", { status: 401 });
+    try {
+      const result = await client.query(
+        "SELECT id, password FROM users WHERE id = $1",
+        [currentUser.id]
+      )
+
+      const user = result.rows[0]
+
+      if (!user) {
+        return new NextResponse("User not found", { status: 404 })
+      }
+
+      const isCurrentPasswordCorrect = await bcrypt.compare(
+        currentPassword,
+        user.password
+      )
+
+      if (!isCurrentPasswordCorrect) {
+        return new NextResponse("Current password is wrong", { status: 400 })
+      }
+
+      const newHashedPassword = await bcrypt.hash(newPassword, 10)
+
+      await client.query("UPDATE users SET password = $1 WHERE id = $2", [
+        newHashedPassword,
+        currentUser.id,
+      ])
+
+      return new NextResponse("Password changed successfully", { status: 200 })
+    } finally {
+      client.release()
     }
-
-    const isCurrentPasswordCorrect = await bcrypt.compare(
-      currentPassword,
-      user?.password!,
-    );
-
-    if (!isCurrentPasswordCorrect) {
-      return new NextResponse("Current Password is wrong", { status: 400 });
-    }
-
-    await prisma.user.update({
-      where: {
-        id: currentUser.id,
-      },
-      data: {
-        password: await bcrypt.hash(newPassword, 10),
-      },
-    });
-
-    return new NextResponse("Password changed successfully", { status: 200 });
   } catch (error) {
-    console.error(error);
-    return new NextResponse("Server error", { status: 500 });
+    console.error("Error changing password:", error)
+    return new NextResponse("Server error", { status: 500 })
   }
 }

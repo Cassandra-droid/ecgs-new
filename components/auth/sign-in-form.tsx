@@ -22,6 +22,7 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { ImSpinner2 } from "react-icons/im";
 
+
 const SignInForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,7 @@ const SignInForm = () => {
 
   const onSubmit = async (values: UserLoginSchemaType) => {
     try {
-      const res = await axios.post("/api/auth/sign-in", {
+      const res = await axios.post("http://localhost:8000/api/signin/", {
         email: values.email,
         password: values.password,
         callbackUrl,

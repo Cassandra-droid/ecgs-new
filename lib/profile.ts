@@ -1,96 +1,101 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { prisma } from "@/lib/prisma"
-import { getServerSession, getCurrentUser } from "@/lib/auth"
+import pool from "@/lib/db"
+import { getServerSession } from "@/lib/auth"
 
-// Get user profile data with related information
+// Utility
+async function getSession() {
+  const session = await getServerSession()
+  if (!session || !session.user) throw new Error("Unauthorized")
+  return session
+}
+
+// Default profile
+const defaultEmptyProfile = {
+  title: "",
+  bio: "",
+  gender: "",
+  age: null,
+  educationLevel: "",
+  experience: "",
+  careerPreferences: "",
+  location: "",
+  phone: "",
+  website: "",
+  skills: [],
+  education: [],
+  interests: [],
+}
+
+// Ensure profile exists and return ID
+async function ensureUserProfile(userId: string) {
+  const client = await pool.connect()
+  try {
+    const res = await client.query(
+      `SELECT id FROM user_profiles WHERE user_id = $1`,
+      [userId]
+    )
+    if (res.rowCount && res.rowCount > 0) return res.rows[0].id
+
+    const insertRes = await client.query(
+      `INSERT INTO user_profiles (user_id) VALUES ($1) RETURNING id`,
+      [userId]
+    )
+    return insertRes.rows[0].id
+  } finally {
+    client.release()
+  }
+}
+
+// Get user profile with skills, interests, education
 export async function getUserProfile(userId: string | undefined) {
   if (!userId) return null
 
   try {
-    // First check if the user has a profile
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        profile: {
-          include: {
-            skills: true,
-            interests: true,
-            education: true,
-          },
-        },
-      },
-    })
+    const client = await pool.connect()
+    try {
+      const userRes = await client.query(`
+        SELECT u.name, p.*, 
+          COALESCE(json_agg(DISTINCT s) FILTER (WHERE s.id IS NOT NULL), '[]') as skills,
+          COALESCE(json_agg(DISTINCT i) FILTER (WHERE i.id IS NOT NULL), '[]') as interests,
+          COALESCE(json_agg(DISTINCT e) FILTER (WHERE e.id IS NOT NULL), '[]') as education
+        FROM users u
+        LEFT JOIN user_profiles p ON u.id = p.user_id
+        LEFT JOIN user_profile_skills ups ON p.id = ups.profile_id
+        LEFT JOIN skills s ON ups.skill_id = s.id
+        LEFT JOIN user_profile_interests upi ON p.id = upi.profile_id
+        LEFT JOIN interests i ON upi.interest_id = i.id
+        LEFT JOIN education e ON p.id = e.profile_id
+        WHERE u.id = $1
+        GROUP BY u.name, p.id
+      `, [userId])
 
-    if (!user || !user.profile) {
-      // Return default empty profile if not found
+      const row = userRes.rows[0]
+      if (!row) return defaultEmptyProfile
+
       return {
-        title: "",
-        bio: "",
-        gender: "",
-        age: null,
-        educationLevel: "",
-        experience: "",
-        careerPreferences: "",
-        location: "",
-        phone: "",
-        website: "",
-        skills: [],
-        education: [],
-        interests: [],
+        title: row.title || "",
+        bio: row.bio || "",
+        gender: row.gender || "",
+        age: row.age,
+        educationLevel: row.education_level || "",
+        experience: row.experience || "",
+        careerPreferences: row.career_preferences || "",
+        location: row.location || "",
+        phone: row.phone || "",
+        website: row.website || "",
+        skills: row.skills || [],
+        education: row.education || [],
+        interests: row.interests || [],
       }
-    }
-
-    return {
-      title: user.profile.title || "",
-      bio: user.profile.bio || "",
-      gender: user.profile.gender || "",
-      age: user.profile.age || null,
-      educationLevel: user.profile.educationLevel || "",
-      experience: user.profile.experience || "",
-      careerPreferences: user.profile.careerPreferences || "",
-      location: user.profile.location || "",
-      phone: user.profile.phone || "",
-      website: user.profile.website || "",
-      skills: user.profile.skills || [],
-      education: user.profile.education || [],
-      interests: user.profile.interests || [],
+    } finally {
+      client.release()
     }
   } catch (error) {
     console.error("Failed to fetch user profile:", error)
     throw new Error("Failed to fetch user profile")
   }
-}
-
-// Get the current user's session
-async function getSession() {
-  const session = await getServerSession()
-  if (!session || !session.user) {
-    throw new Error("Unauthorized")
-  }
-  return session
-}
-
-// Ensure user has a profile
-async function ensureUserProfile(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { profile: true },
-  })
-
-  if (!user) throw new Error("User not found")
-
-  if (!user.profile) {
-    // Create a profile if it doesn't exist
-    return await prisma.userProfile.create({
-      data: {
-        userId: user.id,
-      },
-    })
-  }
-
-  return user.profile
 }
 
 // Update profile header (name, title, bio)
@@ -99,38 +104,34 @@ export async function updateProfileHeader(data: {
   title: string
   bio: string
 }) {
+  const session = await getSession()
+  const userId = (session.user as { id: string }).id
+
+  const client = await pool.connect()
   try {
-    const session = await getSession()
-    const user = session.user as { id: string }
-    const userId = user.id
+    const profileId = await ensureUserProfile(userId)
 
-    // Update user name
-    await prisma.user.update({
-      where: { id: userId },
-      data: { name: data.name },
-    })
+    await client.query(`UPDATE users SET name = $1 WHERE id = $2`, [
+      data.name,
+      userId,
+    ])
 
-    // Ensure profile exists and update it
-    const profile = await ensureUserProfile(userId)
+    await client.query(
+      `UPDATE user_profiles SET title = $1, bio = $2 WHERE id = $3`,
+      [data.title, data.bio, profileId]
+    )
 
-    await prisma.userProfile.update({
-      where: { id: profile.id },
-      data: {
-        title: data.title,
-        bio: data.bio,
-      },
-    })
-
-    // Revalidate the profile page to show updated data
     revalidatePath("/profile")
     return { success: true }
   } catch (error) {
     console.error("Failed to update profile header:", error)
     throw new Error("Failed to update profile header")
+  } finally {
+    client.release()
   }
 }
 
-// Update personal information
+// Update personal info
 export async function updatePersonalInfo(data: {
   name: string
   email: string
@@ -145,218 +146,135 @@ export async function updatePersonalInfo(data: {
   phone: string
   website: string
 }) {
+  const session = await getSession()
+  const userId = (session.user as { id: string }).id
+
+  const client = await pool.connect()
   try {
-    const session = await getSession()
-    const user = session.user as { id: string }
-    const userId = user.id
+    const profileId = await ensureUserProfile(userId)
 
-    // Update user name
-    await prisma.user.update({
-      where: { id: userId },
-      data: { name: data.name },
-    })
+    await client.query(`UPDATE users SET name = $1 WHERE id = $2`, [
+      data.name,
+      userId,
+    ])
 
-    // Ensure profile exists and update it
-    const profile = await ensureUserProfile(userId)
+    await client.query(
+      `UPDATE user_profiles SET 
+        title = $1, bio = $2, gender = $3, age = $4,
+        education_level = $5, experience = $6, career_preferences = $7,
+        location = $8, phone = $9, website = $10
+      WHERE id = $11`,
+      [
+        data.title,
+        data.bio,
+        data.gender,
+        data.age ? Number(data.age) : null,
+        data.educationLevel,
+        data.experience,
+        data.careerPreferences,
+        data.location,
+        data.phone,
+        data.website,
+        profileId,
+      ]
+    )
 
-    await prisma.userProfile.update({
-      where: { id: profile.id },
-      data: {
-        title: data.title,
-        bio: data.bio,
-        gender: data.gender,
-        age: data.age ? Number(data.age) : null,
-        educationLevel: data.educationLevel,
-        experience: data.experience,
-        careerPreferences: data.careerPreferences,
-        location: data.location,
-        phone: data.phone,
-        website: data.website,
-      },
-    })
-
-    // Revalidate the profile page to show updated data
     revalidatePath("/profile")
     return { success: true }
   } catch (error) {
     console.error("Failed to update personal info:", error)
     throw new Error("Failed to update personal info")
+  } finally {
+    client.release()
   }
 }
 
-// Update user skills - adapted for many-to-many relationship
-export async function updateUserSkills(userId: string, skills: Array<{ name: string; level?: string }>) {
+// Update skills
+export async function updateUserSkills(skills: string[]) {
+  const session = await getSession()
+  const userId = (session.user as { id: string }).id
+  const client = await pool.connect()
+
   try {
-    // Ensure profile exists
-    const profile = await ensureUserProfile(userId)
+    const profileId = await ensureUserProfile(userId)
 
-    // First disconnect all existing skill connections
-    await prisma.userProfile.update({
-      where: { id: profile.id },
-      data: {
-        skills: {
-          set: [], // Remove all current connections
-        },
-      },
-    })
+    // Remove old
+    await client.query(`DELETE FROM user_profile_skills WHERE profile_id = $1`, [profileId])
 
-    // Connect or create skills
-    for (const skill of skills) {
-      // Find the skill or create if it doesn't exist
-      let existingSkill = null;
-      
-      if (skill.level) {
-        existingSkill = await prisma.skill.findFirst({
-          where: {
-            name: skill.name,
-            level: skill.level,
-          },
-        });
-      } else {
-        existingSkill = await prisma.skill.findFirst({
-          where: {
-            name: skill.name,
-          },
-        });
-      }
+    for (const skillName of skills) {
+      const { rows } = await client.query(
+        `INSERT INTO skills (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
+        [skillName]
+      )
 
-      if (existingSkill) {
-        // Connect existing skill to profile
-        await prisma.userProfile.update({
-          where: { id: profile.id },
-          data: {
-            skills: {
-              connect: { id: existingSkill.id },
-            },
-          },
-        })
-      } else {
-        // Create new skill and connect to profile
-        await prisma.userProfile.update({
-          where: { id: profile.id },
-          data: {
-            skills: {
-              create: {
-                name: skill.name,
-                level: skill.level,
-              },
-            },
-          },
-        })
-      }
+      const skillId = rows[0].id
+
+      await client.query(
+        `INSERT INTO user_profile_skills (profile_id, skill_id) VALUES ($1, $2)`,
+        [profileId, skillId]
+      )
     }
 
-    // Revalidate the profile page to show updated data
     revalidatePath("/profile")
     return { success: true }
-  } catch (error) {
-    console.error("Failed to update skills:", error)
-    throw new Error("Failed to update skills")
+  } finally {
+    client.release()
   }
 }
 
-// Update user education
-export async function updateUserEducation(userId: string, education: any[]) {
+// Update interests
+export async function updateUserInterests(interests: string[]) {
+  const session = await getSession()
+  const userId = (session.user as { id: string }).id
+  const client = await pool.connect()
+
   try {
-    // Ensure profile exists
-    const profile = await ensureUserProfile(userId)
+    const profileId = await ensureUserProfile(userId)
 
-    // Delete existing education entries
-    await prisma.education.deleteMany({
-      where: { profileId: profile.id },
-    })
+    await client.query(`DELETE FROM user_profile_interests WHERE profile_id = $1`, [profileId])
 
-    // Create new education entries
-    if (education.length > 0) {
-      await prisma.education.createMany({
-        data: education.map((edu) => ({
-          institution: edu.institution,
-          degree: edu.degree,
-          field: edu.field || null,
-          startYear: edu.startYear || null,
-          endYear: edu.endYear || null,
-          description: edu.description || null,
-          profileId: profile.id,
-        })),
-      })
-    }
-
-    // Revalidate the profile page to show updated data
-    revalidatePath("/profile")
-    return { success: true }
-  } catch (error) {
-    console.error("Failed to update education:", error)
-    throw new Error("Failed to update education")
-  }
-}
-
-// Update user interests - adapted for many-to-many relationship
-export async function updateUserInterests(userId: string, interests: Array<{ name: string; category?: string }>) {
-  try {
-    // Ensure profile exists
-    const profile = await ensureUserProfile(userId)
-
-    // First disconnect all existing interest connections
-    await prisma.userProfile.update({
-      where: { id: profile.id },
-      data: {
-        interests: {
-          set: [], // Remove all current connections
-        },
-      },
-    })
-
-    // Connect or create interests
     for (const interest of interests) {
-      // Find the interest or create if it doesn't exist
-      let existingInterest = null;
-      
-      if (interest.category) {
-        existingInterest = await prisma.interest.findFirst({
-          where: {
-            name: interest.name,
-            category: interest.category,
-          },
-        });
-      } else {
-        existingInterest = await prisma.interest.findFirst({
-          where: {
-            name: interest.name,
-          },
-        });
-      }
+      const { rows } = await client.query(
+        `INSERT INTO interests (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
+        [interest]
+      )
 
-      if (existingInterest) {
-        // Connect existing interest to profile
-        await prisma.userProfile.update({
-          where: { id: profile.id },
-          data: {
-            interests: {
-              connect: { id: existingInterest.id },
-            },
-          },
-        })
-      } else {
-        // Create new interest and connect to profile
-        await prisma.userProfile.update({
-          where: { id: profile.id },
-          data: {
-            interests: {
-              create: {
-                name: interest.name,
-                category: interest.category,
-              },
-            },
-          },
-        })
-      }
+      const interestId = rows[0].id
+
+      await client.query(
+        `INSERT INTO user_profile_interests (profile_id, interest_id) VALUES ($1, $2)`,
+        [profileId, interestId]
+      )
     }
 
-    // Revalidate the profile page to show updated data
     revalidatePath("/profile")
     return { success: true }
-  } catch (error) {
-    console.error("Failed to update interests:", error)
-    throw new Error("Failed to update interests")
+  } finally {
+    client.release()
+  }
+}
+
+// Update education
+export async function updateEducation(educationEntries: { institution: string; degree: string; year: string }[]) {
+  const session = await getSession()
+  const userId = (session.user as { id: string }).id
+  const client = await pool.connect()
+
+  try {
+    const profileId = await ensureUserProfile(userId)
+
+    await client.query(`DELETE FROM education WHERE profile_id = $1`, [profileId])
+
+    for (const entry of educationEntries) {
+      await client.query(
+        `INSERT INTO education (profile_id, institution, degree, year) VALUES ($1, $2, $3, $4)`,
+        [profileId, entry.institution, entry.degree, entry.year]
+      )
+    }
+
+    revalidatePath("/profile")
+    return { success: true }
+  } finally {
+    client.release()
   }
 }

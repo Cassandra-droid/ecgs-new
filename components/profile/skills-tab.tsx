@@ -47,7 +47,7 @@ export default function SkillsTab({ skills, userId }: SkillsTabProps) {
     setIsLoading(true)
 
     try {
-      await updateUserSkills(userId, userSkills)
+      await updateUserSkills(userSkills.map((skill) => skill.name))
       toast({
         title: "Skills updated",
         description: "Your skills have been updated successfully.",

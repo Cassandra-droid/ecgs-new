@@ -37,7 +37,7 @@ const SignUpForm = () => {
   const onSubmit = async (values: UserRegistrationSchemaType) => {
     setError("");
     try {
-      await axios.post("/api/auth/sign-up", {
+      await axios.post("http://localhost:8000/api/signup/", {
         ...values,
       });
       router.push(`/sign-in?message=${message}`);

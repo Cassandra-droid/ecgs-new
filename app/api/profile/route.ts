@@ -1,6 +1,8 @@
+// app/api/profile/route.ts
+
 import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
 import { getServerSession, signJwtToken } from "@/lib/auth"
+import pool from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,147 +12,132 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { name, age, gender, educationLevel, experience, careerPreferences, skills, interests } = await request.json()
+    const {
+      age,
+      gender,
+      educationLevel,
+      experience,
+      careerPreferences,
+      skills,
+      interests,
+    } = await request.json()
 
-    console.log("Creating/updating profile for user:", session.id)
-    console.log("Received data:", { name, age, gender, educationLevel, skills, interests })
+    const client = await pool.connect()
 
-    // Check if profile already exists
-    const existingProfile = await prisma.userProfile.findUnique({
-      where: { userId: session.id as string },
-      include: {
-        skills: true,
-        interests: true,
-      },
-    })
+    try {
+      await client.query("BEGIN")
 
-    let profile
+      // Check if profile exists
+      const { rows: existingRows } = await client.query(
+        `SELECT id FROM user_profiles WHERE user_id = $1`,
+        [session.id]
+      )
 
-    if (existingProfile) {
-      // Update existing profile
-      console.log("Updating existing profile:", existingProfile.id)
-      
-      // First, disconnect all existing skills and interests
-      await prisma.userProfile.update({
-        where: { id: existingProfile.id },
-        data: {
-          skills: {
-            disconnect: existingProfile.skills.map(skill => ({ id: skill.id })),
-          },
-          interests: {
-            disconnect: existingProfile.interests.map(interest => ({ id: interest.id })),
-          },
-        },
-      })
-      
-      // Then update the profile with new data
-      profile = await prisma.userProfile.update({
-        where: { id: existingProfile.id },
-        data: {
-          age: Number(age),
-          gender,
-          educationLevel,
-          experience,
-          careerPreferences,
-        },
-      })
-    } else {
-      // Create new profile
-      console.log("Creating new profile")
-      profile = await prisma.userProfile.create({
-        data: {
-          userId: session.id as string,
-          age: Number(age),
-          gender,
-          educationLevel,
-          experience,
-          careerPreferences,
-        },
-      })
-    }
+      let profileId: string
 
-    console.log("Profile saved:", profile.id)
+      if (existingRows.length > 0) {
+        profileId = existingRows[0].id
 
-    // Handle skills - create if they don't exist and connect them to the profile
-    if (skills && skills.length > 0) {
-      for (const skillName of skills) {
-        // Find or create the skill
-        let skill = await prisma.skill.findUnique({
-          where: { name: skillName },
-        })
+        await client.query(
+          `UPDATE user_profiles
+           SET age = $1, gender = $2, education_level = $3, experience = $4, career_preferences = $5
+           WHERE id = $6`,
+          [age, gender, educationLevel, experience, careerPreferences, profileId]
+        )
 
-        if (!skill) {
-          skill = await prisma.skill.create({
-            data: { name: skillName },
-          })
+        // Disconnect previous skills & interests
+        await client.query(`DELETE FROM user_profile_skills WHERE profile_id = $1`, [profileId])
+        await client.query(`DELETE FROM user_profile_interests WHERE profile_id = $1`, [profileId])
+      } else {
+        const result = await client.query(
+          `INSERT INTO user_profiles (user_id, age, gender, education_level, experience, career_preferences)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+          [session.id, age, gender, educationLevel, experience, careerPreferences]
+        )
+        profileId = result.rows[0].id
+      }
+
+      // Handle skills
+      for (const { name, level } of skills || []) {
+        let skillId
+
+        const skillRes = await client.query(
+          `SELECT id FROM skills WHERE name = $1 AND level IS NOT DISTINCT FROM $2`,
+          [name, level]
+        )
+
+        if (skillRes.rows.length > 0) {
+          skillId = skillRes.rows[0].id
+        } else {
+          const newSkill = await client.query(
+            `INSERT INTO skills (name, level) VALUES ($1, $2) RETURNING id`,
+            [name, level]
+          )
+          skillId = newSkill.rows[0].id
         }
 
-        // Connect skill to profile
-        await prisma.userProfile.update({
-          where: { id: profile.id },
-          data: {
-            skills: {
-              connect: { id: skill.id },
-            },
-          },
-        })
+        await client.query(
+          `INSERT INTO user_profile_skills (profile_id, skill_id) VALUES ($1, $2)`,
+          [profileId, skillId]
+        )
       }
-    }
 
-    // Handle interests - create if they don't exist and connect them to the profile
-    if (interests && interests.length > 0) {
-      for (const interestName of interests) {
-        // Find or create the interest
-        let interest = await prisma.interest.findUnique({
-          where: { name: interestName },
-        })
+      // Handle interests
+      for (const { name, category } of interests || []) {
+        let interestId
 
-        if (!interest) {
-          interest = await prisma.interest.create({
-            data: { name: interestName },
-          })
+        const interestRes = await client.query(
+          `SELECT id FROM interests WHERE name = $1 AND category IS NOT DISTINCT FROM $2`,
+          [name, category]
+        )
+
+        if (interestRes.rows.length > 0) {
+          interestId = interestRes.rows[0].id
+        } else {
+          const newInterest = await client.query(
+            `INSERT INTO interests (name, category) VALUES ($1, $2) RETURNING id`,
+            [name, category]
+          )
+          interestId = newInterest.rows[0].id
         }
 
-        // Connect interest to profile
-        await prisma.userProfile.update({
-          where: { id: profile.id },
-          data: {
-            interests: {
-              connect: { id: interest.id },
-            },
-          },
-        })
+        await client.query(
+          `INSERT INTO user_profile_interests (profile_id, interest_id) VALUES ($1, $2)`,
+          [profileId, interestId]
+        )
       }
+
+      await client.query("COMMIT")
+
+      // JWT with hasProfile flag
+      const token = await signJwtToken({
+        id: session.id,
+        email: session.email,
+        name: session.name,
+        hasProfile: true,
+      })
+
+      const response = NextResponse.json({ success: true, profileId }, { status: 200 })
+
+      response.cookies.set({
+        name: "auth-token",
+        value: token,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7,
+        path: "/",
+      })
+
+      return response
+    } catch (e) {
+      await client.query("ROLLBACK")
+      throw e
+    } finally {
+      client.release()
     }
-
-    // Update session with hasProfile flag
-    const token = await signJwtToken({
-      id: session.id,
-      email: session.email,
-      name: session.name,
-      hasProfile: true,
-    })
-
-    // Create response
-    const response = NextResponse.json({ success: true, profileId: profile.id }, { status: 200 })
-
-    // Update cookie
-    response.cookies.set({
-      name: "auth-token",
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: "/",
-    })
-
-    return response
   } catch (error) {
-    console.error("Profile save error:", error)
-    return NextResponse.json(
-      { error: "Something went wrong", details: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    )
+    console.error("Profile POST error:", error)
+    return NextResponse.json({ error: "Failed to save profile" }, { status: 500 })
   }
 }
 
@@ -162,32 +149,46 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId: session.id as string },
-      include: {
-        skills: true,
-        interests: true,
-      },
-    })
+    const client = await pool.connect()
 
-    if (!profile) {
+    const result = await client.query(
+      `SELECT * FROM user_profiles WHERE user_id = $1`,
+      [session.id]
+    )
+
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 })
     }
 
-    // Transform the data to match the expected format in the frontend
-    return NextResponse.json(
-      {
-        profile: {
-          ...profile,
-          skills: profile.skills.map(skill => skill.name),
-          interests: profile.interests.map(interest => interest.name),
-        },
-      },
-      { status: 200 },
+    const profile = result.rows[0]
+
+    const skillsRes = await client.query(
+      `SELECT s.name FROM skills s
+       JOIN user_profile_skills ups ON ups.skill_id = s.id
+       WHERE ups.profile_id = $1`,
+      [profile.id]
     )
+
+    const interestsRes = await client.query(
+      `SELECT i.name FROM interests i
+       JOIN user_profile_interests upi ON upi.interest_id = i.id
+       WHERE upi.profile_id = $1`,
+      [profile.id]
+    )
+
+    client.release()
+
+    return NextResponse.json({
+      profile: {
+        ...profile,
+        skills: skillsRes.rows.map(row => row.name),
+        interests: interestsRes.rows.map(row => row.name),
+      },
+    })
   } catch (error) {
-    console.error("Profile fetch error:", error)
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 })
+    console.error("Profile GET error:", error)
+    return NextResponse.json({ error: "Failed to fetch profile" }, { status: 500 })
   }
 }
+
 

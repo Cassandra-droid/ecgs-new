@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import pool from "@/lib/db";
 
 export async function DELETE() {
   try {
@@ -10,15 +10,18 @@ export async function DELETE() {
       return new Response("You are not authenticated!", { status: 401 });
     }
 
-    await prisma.user.delete({
-      where: { id: user?.id },
-    });
+    const client = await pool.connect();
 
-    return new NextResponse("Account deleted succesfully", { status: 200 });
+    try {
+      await client.query("DELETE FROM users WHERE id = $1", [user.id]);
+
+      return new NextResponse("Account deleted successfully", { status: 200 });
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error("Error deleting account:", error);
     return new NextResponse("Server Error", { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
+// This code defines a DELETE function that deletes a user's account from the database.

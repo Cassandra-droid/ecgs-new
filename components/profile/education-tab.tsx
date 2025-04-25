@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "@/hooks/use-toast"
-import { updateUserEducation } from "@/lib/profile"
+import { updateEducation } from "@/lib/profile"
 
 interface Education {
   id?: string
@@ -86,16 +86,13 @@ export default function EducationTab({ education, userId }: EducationTabProps) {
 
     try {
       // We only need to send the fields that match our database schema
-      const educationToSave = userEducation.map(({ institution, degree, field, startYear, endYear, description }) => ({
+      const educationToSave = userEducation.map(({ institution, degree, startYear, endYear }) => ({
         institution,
         degree,
-        field,
-        startYear,
-        endYear,
-        description,
+        year: `${startYear || "Unknown"} - ${endYear || "Present"}`,
       }))
 
-      await updateUserEducation(userId, educationToSave)
+      await updateEducation(educationToSave)
       toast({
         title: "Education updated",
         description: "Your education history has been updated successfully.",
