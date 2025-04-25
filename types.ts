@@ -22,5 +22,5 @@ export type SessionUser = {
   name: string;
   email: string;
   image: string | null;
-  role: UserRole;
+  role: "admin" | "user"; 
 } | null;
