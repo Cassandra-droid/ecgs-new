@@ -2,7 +2,7 @@
 import { Pool } from 'pg'
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Make sure this is in your .env file
+  connectionString: process.env.DATABASE_URL, 
 })
 
 export default pool
