@@ -10,6 +10,20 @@ import InterestsTab from "@/components/profile/interests-tab"
 import SecurityTab from "@/components/profile/security-tab"
 import { getUserProfile } from "@/lib/profile"
 
+// Skill and Interest Types
+interface Skill {
+  id: string;
+  name: string;
+  level: string;
+}
+
+interface Interest {
+  id: string;
+  name: string;
+  category: string;
+}
+
+// Profile Component
 const Profile = async () => {
   const user = await getCurrentUser()
   const profile = await getUserProfile(user?.id)
@@ -65,7 +79,7 @@ const Profile = async () => {
 
             <TabsContent value="skills">
               <SkillsTab
-                skills={(profile?.skills || []).map(skill => ({
+                skills={(profile?.skills || []).map((skill: Skill) => ({
                   ...skill,
                   level: skill.level || "Unknown",
                 }))}
@@ -79,7 +93,7 @@ const Profile = async () => {
 
             <TabsContent value="interests">
               <InterestsTab
-                interests={(profile?.interests || []).map(interest => ({
+                interests={(profile?.interests || []).map((interest: Interest) => ({
                   ...interest,
                   category: interest.category || "",
                 }))}
@@ -98,3 +112,4 @@ const Profile = async () => {
 }
 
 export default Profile
+
