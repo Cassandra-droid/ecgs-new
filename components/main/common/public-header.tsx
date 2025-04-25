@@ -34,13 +34,7 @@ const NavLink = ({ href, children, isActive, isMobile }: NavLinkProps) => {
 };
 
 // Public navigation items
-const publicNavItems = [
-  { name: "Home", href: "/" },
-  { name: "Features", href: "/features" },
-  { name: "Pricing", href: "/pricing" },
-  { name: "About", href: "/about" },
-  { name: "Contact", href: "/contact" },
-];
+
 
 export function PublicHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -67,15 +61,9 @@ export function PublicHeader() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex md:items-center md:space-x-6">
-            {publicNavItems.map((item) => (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                isActive={isActive(item.href)}
-              >
-                {item.name}
-              </NavLink>
-            ))}
+            
+              
+            
           </nav>
 
           {/* Right side buttons */}
@@ -112,16 +100,7 @@ export function PublicHeader() {
         {mobileMenuOpen && (
           <div className="md:hidden">
             <div className="space-y-1 px-4 pb-3 pt-2">
-              {publicNavItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  href={item.href}
-                  isActive={pathname === item.href}
-                  isMobile
-                >
-                  {item.name}
-                </NavLink>
-              ))}
+              
               <div className="mt-4 flex flex-col space-y-2">
                 <Button
                   variant="outline"
