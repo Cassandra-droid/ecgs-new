@@ -19,7 +19,7 @@ export type PasswordChangeSchemaType = z.infer<typeof changePasswordSchema>;
 
 export type SessionUser = {
   id: string;
-  name: string;
+  username: string;
   email: string;
   image: string | null;
   role: "admin" | "user"; 
