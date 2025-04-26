@@ -60,14 +60,14 @@ const SignUpForm = () => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
           <FormField
             control={form.control}
-            name="name"
+            name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Username</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
-                    placeholder="Name"
+                    placeholder="Usename"
                     className="bg-transparent"
                     disabled={form.formState.isSubmitting}
                   />
