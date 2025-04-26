@@ -50,10 +50,10 @@ const ProfileUpdateForm = ({ user }: ProfileUpdateFormProps) => {
             <div className="w-full flex-1 sm:w-fit">
               <FormField
                 control={form.control}
-                name="name"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Username</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
