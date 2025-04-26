@@ -370,7 +370,7 @@ export default function DashboardPage({ user }: DashboardPageProps) {
       <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {userData.name}</p>
+          <p className="text-muted-foreground">Welcome back, {userData.username}</p>
         </div>
         <div className="mt-4 flex gap-2 md:mt-0">
           <TooltipProvider>
