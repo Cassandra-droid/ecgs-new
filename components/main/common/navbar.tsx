@@ -85,17 +85,17 @@ export function Navbar({ user }: NavbarProps) {
                           src={
                             user?.image || "/placeholder.svg?height=32&width=32"
                           }
-                          alt={user?.name || "User"}
+                          alt={user?.username || "User"}
                         />
                         <AvatarFallback>
-                          {user?.name?.charAt(0) || "U"}
+                          {user?.username?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <div className="border-b border-border px-2 py-1.5 text-sm font-medium">
-                      {user?.name || "User"}
+                      {user?.username || "User"}
                       <p className="truncate text-xs text-muted-foreground">
                         {user?.email}
                       </p>
