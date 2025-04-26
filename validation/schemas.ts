@@ -3,7 +3,7 @@ import * as z from "zod";
 // User Registration Schema ---------------------------------------------------------------------------------------------------------------
 export const userRegistrationSchema = z
   .object({
-    name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+    username: z.string().min(2, { message: "Name must be at least 2 characters" }),
     email: z.string().email({ message: "Please enter a valid email address" }),
     password: z
       .string()
@@ -17,7 +17,7 @@ export const userRegistrationSchema = z
 
 // Profile Update Schema ---------------------------------------------------------------------------------------------------------------
 export const profileUpdateSchema = z.object({
-  name: z.string({ required_error: "Name is required" }).min(3),
+  username: z.string({ required_error: "Name is required" }).min(3),
   email: z
     .string({ required_error: "Email address is required" })
     .email("Invalid email address"),
@@ -58,7 +58,7 @@ export const resetPasswordSchema = z
 
 // User Profile Edit Schema ---------------------------------------------------------------------------------------------------------------
 export const userProfileSchema = z.object({
-  name: z.string({ required_error: "Name is required" }).min(3),
+  username: z.string({ required_error: "Name is required" }).min(3),
   email: z
     .string({ required_error: "Email address is required" })
     .email("Invalid email address"),
