@@ -17,11 +17,11 @@ const Profile = async () => {
           Back
         </Link>
         <ProfileDetails
-          user={{ name: user?.name!, email: user?.email!, image: user?.image! }}
+          user={{ username: user?.username!, email: user?.email!, image: user?.image! }}
         />
         <div className="mt-6">
           <ProfileUpdateForm
-            user={{ name: user?.name!, email: user?.email! }}
+            user={{ username: user?.username!, email: user?.email! }}
           />
           <PasswordChangeForm />
           <DeleteAccount />
