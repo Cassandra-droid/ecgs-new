@@ -44,6 +44,8 @@ const SignInForm = () => {
         email: values.email,
         password: values.password,
       });
+      // Save the token
+    localStorage.setItem("token", res.data.token);
       setError(null);
       toast.success("Login success, redirecting...");
       router.push("/dashboard"); 
