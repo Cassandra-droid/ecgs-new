@@ -40,11 +40,10 @@ const SignInForm = () => {
       const res = await axios.post("http://localhost:8000/api/signin/", {
         email: values.email,
         password: values.password,
-        callbackUrl,
       });
       setError(null);
       toast.success("Login success, redirecting...");
-      location.assign(res.data.callbackUrl);
+      location.assign("/dashboard");
     } catch (error: any) {
       setError(error.response.data);
     }
