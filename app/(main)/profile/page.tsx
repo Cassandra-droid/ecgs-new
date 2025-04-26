@@ -45,7 +45,7 @@ const Profile = async () => {
         <CardContent>
           <ProfileHeader
             user={{
-              name: user?.name || "",
+              username: user?.username || "",
               email: user?.email || "",
               image: user?.image || "",
               title: profile?.title || "",
@@ -65,7 +65,7 @@ const Profile = async () => {
             <TabsContent value="personal">
               <PersonalInfoTab
                 user={{
-                  name: user?.name || "",
+                  username: user?.username || "",
                   email: user?.email || "",
                   title: profile?.title || "",
                   bio: profile?.bio || "",
