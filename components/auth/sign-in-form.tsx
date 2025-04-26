@@ -29,7 +29,7 @@ const SignInForm = () => {
   const searchParams = useSearchParams();
 
   const message = searchParams.get("message");
-  const callbackUrl = searchParams?.get("callbackUrl");
+  
 
   const form = useForm<UserLoginSchemaType>({
     resolver: zodResolver(userLoginSchema),
