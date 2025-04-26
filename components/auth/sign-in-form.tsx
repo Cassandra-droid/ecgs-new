@@ -37,24 +37,28 @@ const SignInForm = () => {
   });
 
   const router = useRouter();
-
   const onSubmit = async (values: UserLoginSchemaType) => {
     try {
       const res = await axios.post("http://localhost:8000/api/signin/", {
         email: values.email,
         password: values.password,
-      },
-    
-     { withCredentials: true }
-    );
-     
-      setError(null);
+      });
+  
+      const token = res.data.token;
+      
+      // Save the token as a cookie
+      document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict`;
+  
       toast.success("Login success, redirecting...");
-      router.push("/dashboard"); 
+      setError(null);
+  
+      // Important: use full reload so server sees cookie
+      window.location.href = "/dashboard";
     } catch (error: any) {
-      setError(error.response.data);
+      setError(error.response.data?.error || "An error occurred");
     }
-  };
+  };  
+
 
   return (
     <div>
