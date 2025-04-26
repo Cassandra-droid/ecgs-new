@@ -20,7 +20,7 @@ import { ImSpinner2 } from "react-icons/im";
 
 interface ProfileUpdateFormProps {
   user: {
-    name: string;
+    username: string;
     email: string;
   };
 }
@@ -31,13 +31,13 @@ const ProfileUpdateForm = ({ user }: ProfileUpdateFormProps) => {
   const form = useForm<UserProfileSchemaType>({
     resolver: zodResolver(profileUpdateSchema),
     defaultValues: {
-      name: user.name,
+      username: user.username,
       email: user.email,
     },
   });
 
   const onSubmit = async (values: UserProfileSchemaType) => {
-    await updateUser({ name: values.name, email: values.email });
+    await updateUser({ username: values.username, email: values.email });
     toast.success("Profile Updated successfully");
   };
 

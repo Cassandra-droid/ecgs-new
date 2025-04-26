@@ -8,7 +8,7 @@ import ProfileHeaderEdit from "./profile-header-edit"
 
 interface ProfileHeaderProps {
   user: {
-    name: string
+    username: string
     email: string
     image: string
     title: string
@@ -26,13 +26,13 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
   return (
     <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-x-6 sm:space-y-0">
       <Avatar className="h-24 w-24">
-        <AvatarImage src={user.image || "/placeholder.svg"} alt={user.name} />
-        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+        <AvatarImage src={user.image || "/placeholder.svg"} alt={user.username} />
+        <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
       </Avatar>
 
       <div className="flex-1 space-y-2 text-center sm:text-left">
         <div className="flex items-center justify-center space-x-2 sm:justify-start">
-          <h2 className="text-2xl font-bold">{user.name}</h2>
+          <h2 className="text-2xl font-bold">{user.username}</h2>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
             <Edit className="h-4 w-4" />
             <span className="sr-only">Edit profile header</span>

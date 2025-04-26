@@ -6,7 +6,7 @@ import LogoutButton from "../auth/logout-button";
 
 interface ProfileDetailsProps {
   user: {
-    name: string;
+    username: string;
     email: string;
     image: string;
   };
@@ -29,7 +29,7 @@ const ProfileDetails = ({ user }: ProfileDetailsProps) => {
           </div>
         </label>
         <div>
-          <h1 className="text-xl">{user?.name}</h1>
+          <h1 className="text-xl">{user?.username}</h1>
           <p className="text-sm">{user?.email}</p>
           <LogoutButton />
         </div>

@@ -14,7 +14,7 @@ import { toast } from "@/hooks/use-toast"
 
 interface PersonalInfoTabProps {
   user: {
-    name: string
+    username: string
     email: string
     title: string
     bio: string
@@ -27,7 +27,7 @@ interface PersonalInfoTabProps {
 
 export default function PersonalInfoTab({ user }: PersonalInfoTabProps) {
   const [formData, setFormData] = useState({
-    name: user.name,
+    name: user.username,
     email: user.email,
     title: user.title,
     bio: user.bio,

@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast"
 
 interface ProfileHeaderEditProps {
   user: {
-    name: string
+    username: string
     email: string
     image: string
     title: string
@@ -24,7 +24,7 @@ interface ProfileHeaderEditProps {
 
 export default function ProfileHeaderEdit({ user, onCancel }: ProfileHeaderEditProps) {
   const [formData, setFormData] = useState({
-    name: user.name,
+    name: user.username,
     title: user.title,
     bio: user.bio,
   })
@@ -61,8 +61,8 @@ export default function ProfileHeaderEdit({ user, onCancel }: ProfileHeaderEditP
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-x-6 sm:space-y-0">
         <Avatar className="h-24 w-24">
-          <AvatarImage src={user.image || "/placeholder.svg"} alt={user.name} />
-          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+          <AvatarImage src={user.image || "/placeholder.svg"} alt={user.username} />
+          <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
         </Avatar>
 
         <div className="flex-1 space-y-4">
