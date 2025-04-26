@@ -38,14 +38,26 @@ const SignUpForm = () => {
     setError("");
     try {
       await axios.post("http://localhost:8000/api/signup/", {
-        ...values,
+        username: values.username,
+        email: values.email,
+        password: values.password,
       });
-      router.push(`/sign-in?message=${message}`);
+      router.push(`/sign-in?message=Signup successful!`);
     } catch (error: any) {
-      setError(error.response.data);
+      if (error.response?.data) {
+        const err = error.response.data;
+        if (typeof err === 'string') {
+          setError(err);
+        } else if (typeof err === 'object') {
+          const combined = Object.values(err).flat().join(" ");
+          setError(combined);
+        }
+      } else {
+        setError("Something went wrong");
+      }
     }
   };
-
+  
   return (
     <div>
       <h1 className="mb-4 text-center text-2xl font-semibold">
