@@ -43,9 +43,11 @@ const SignInForm = () => {
       const res = await axios.post("http://localhost:8000/api/signin/", {
         email: values.email,
         password: values.password,
-      });
-      // Save the token
-      localStorage.setItem("token", res.data.token);
+      },
+    
+     { withCredentials: true }
+    );
+     
       setError(null);
       toast.success("Login success, redirecting...");
       router.push("/dashboard"); 
