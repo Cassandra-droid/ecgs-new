@@ -109,7 +109,7 @@ export default function DashboardPage({ user }: DashboardPageProps) {
 
   // Mock data for the dashboard
   const userData = {
-    name: user?.name || "User",
+    username: user?.username || "User",
     completedAssessments: 2,
     totalAssessments: 5,
     skillsMatched: 65,
