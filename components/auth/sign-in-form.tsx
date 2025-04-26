@@ -21,6 +21,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { ImSpinner2 } from "react-icons/im";
+import { useRouter } from "next/navigation";
 
 
 const SignInForm = () => {
@@ -35,6 +36,8 @@ const SignInForm = () => {
     resolver: zodResolver(userLoginSchema),
   });
 
+  const router = useRouter();
+
   const onSubmit = async (values: UserLoginSchemaType) => {
     try {
       const res = await axios.post("http://localhost:8000/api/signin/", {
@@ -43,7 +46,7 @@ const SignInForm = () => {
       });
       setError(null);
       toast.success("Login success, redirecting...");
-      location.assign("/dashboard");
+      router.push("/dashboard"); 
     } catch (error: any) {
       setError(error.response.data);
     }
