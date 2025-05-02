@@ -224,57 +224,52 @@ export async function updateUserSkills(skills: string[]) {
 
 // Update interests
 export async function updateUserInterests(interests: string[]) {
-  const session = await getSession()
-  const userId = (session.user as { id: string }).id
-  const client = await pool.connect()
-
   try {
-    const profileId = await ensureUserProfile(userId)
+    const formattedInterests = interests.map((interest) => ({
+      name: interest,
+      category: "Personal", // or allow custom categories if needed
+    }))
 
-    await client.query(`DELETE FROM user_profile_interests WHERE profile_id = $1`, [profileId])
+    const response = await fetch("http://localhost:8000/api/interests/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // 👈 include cookies for authentication
+      body: JSON.stringify({ interests: formattedInterests }),
+    })
 
-    for (const interest of interests) {
-      const { rows } = await client.query(
-        `INSERT INTO interests (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [interest]
-      )
-
-      const interestId = rows[0].id
-
-      await client.query(
-        `INSERT INTO user_profile_interests (profile_id, interest_id) VALUES ($1, $2)`,
-        [profileId, interestId]
-      )
+    if (!response.ok) {
+      throw new Error("Failed to update interests")
     }
 
-    revalidatePath("/profile")
-    return { success: true }
-  } finally {
-    client.release()
+    return await response.json()
+  } catch (error) {
+    console.error("Error updating interests:", error)
+    throw error
   }
 }
 
+
 // Update education
 export async function updateEducation(educationEntries: { institution: string; degree: string; year: string }[]) {
-  const session = await getSession()
-  const userId = (session.user as { id: string }).id
-  const client = await pool.connect()
-
   try {
-    const profileId = await ensureUserProfile(userId)
+    const response = await fetch("http://localhost:8000/api/education/", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // 👈 sends cookies
+      body: JSON.stringify({ education: educationEntries }),
+    })
 
-    await client.query(`DELETE FROM education WHERE profile_id = $1`, [profileId])
-
-    for (const entry of educationEntries) {
-      await client.query(
-        `INSERT INTO education (profile_id, institution, degree, year) VALUES ($1, $2, $3, $4)`,
-        [profileId, entry.institution, entry.degree, entry.year]
-      )
+    if (!response.ok) {
+      throw new Error("Failed to update education")
     }
 
-    revalidatePath("/profile")
-    return { success: true }
-  } finally {
-    client.release()
+    return await response.json()
+  } catch (error) {
+    console.error("Error updating education:", error)
+    throw error
   }
 }
