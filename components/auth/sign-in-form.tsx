@@ -22,6 +22,7 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { ImSpinner2 } from "react-icons/im";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 
 const SignInForm = () => {
@@ -35,6 +36,8 @@ const SignInForm = () => {
   const form = useForm<UserLoginSchemaType>({
     resolver: zodResolver(userLoginSchema),
   });
+
+  const { setUser } = useAuth();
 
   const router = useRouter();
   const onSubmit = async (values: UserLoginSchemaType) => {
