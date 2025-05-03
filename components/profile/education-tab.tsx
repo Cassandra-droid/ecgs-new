@@ -11,6 +11,7 @@ import { Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "@/hooks/use-toast"
 import { updateEducation } from "@/lib/profile"
+import { useAuth } from "@/context/AuthContext"; 
 
 interface Education {
   id?: string
@@ -27,7 +28,8 @@ interface EducationTabProps {
   userId: string
 }
 
-export default function EducationTab({ education, userId }: EducationTabProps) {
+export default function EducationTab({ education }: EducationTabProps) {
+  const { user } = useAuth(); // ✅ Access the logged-in user
   const [userEducation, setUserEducation] = useState<Education[]>(education)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [isLoading, setIsLoading] = useState(false)

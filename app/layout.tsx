@@ -1,5 +1,8 @@
+// app/layout.tsx
+
 import BackToTopButton from "@/components/common/back-button";
 import { ThemeProvider } from "@/components/common/theme-provider";
+import { AuthProvider } from "@/context/AuthContext"; // ⬅️ import AuthProvider
 import type { Metadata } from "next";
 import { DM_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
@@ -36,9 +39,7 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} ${dmSans.variable}`}
     >
       <body>
-        {/* Next top loader: Appears at the top of the page on page transition */}
         <NextTopLoader color={"#2563eb"} zIndex={9999} />
-        {/* Toaster */}
         <Toaster
           toastOptions={{
             className:
@@ -46,16 +47,19 @@ export default function RootLayout({
             duration: 3000,
           }}
         />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-          storageKey="ecgs-theme"
-        >
-          {children}
-          <BackToTopButton />
-        </ThemeProvider>
+        {/* Wrap with AuthProvider */}
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+            storageKey="ecgs-theme"
+          >
+            {children}
+            <BackToTopButton />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

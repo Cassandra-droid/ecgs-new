@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { navigationItems } from "@/data";
 import { useAuth } from "@/hooks/use-auth";
-import { SessionUser } from "@/types";
 import { Briefcase, LogOut, Menu, Settings, User, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,12 +19,8 @@ import { useState } from "react";
 import { NavItem } from "./nav-item";
 import { MobileMenu } from "./mobile-menu";
 
-interface NavbarProps {
-  user: SessionUser;
-}
-
-export function Navbar({ user }: NavbarProps) {
-  const { logout } = useAuth();
+export function Navbar() {
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const isAuthenticated = !!user;
@@ -82,9 +77,7 @@ export function Navbar({ user }: NavbarProps) {
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage
-                          src={
-                            user?.image || "/placeholder.svg?height=32&width=32"
-                          }
+                          src={user?.image || "/placeholder.svg?height=32&width=32"}
                           alt={user?.username || "User"}
                         />
                         <AvatarFallback>

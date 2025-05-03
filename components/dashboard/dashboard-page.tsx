@@ -2,6 +2,7 @@
 "use client";
 
 import type React from "react";
+import { useAuth } from "@/context/AuthContext";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -70,6 +71,14 @@ interface DashboardPageProps {
 }
 
 export default function DashboardPage({ user }: DashboardPageProps) {
+  const { user: authUser, setUser } = useAuth();
+
+  // Sync server-provided user into AuthContext on mount
+  useEffect(() => {
+    if (user && !authUser) {
+      setUser(user);
+    }
+  }, [user, authUser, setUser]);
   const [activeTab, setActiveTab] = useState("overview");
   const [aiRecommendations, setAiRecommendations] = useState<{
     careerMatch: string;
