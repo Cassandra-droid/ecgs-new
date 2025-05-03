@@ -79,7 +79,7 @@ const SignUpForm = () => {
                 <FormControl>
                   <Input
                     {...field}
-                    placeholder="Usename"
+                    placeholder="Username"
                     className="bg-transparent"
                     disabled={form.formState.isSubmitting}
                   />
