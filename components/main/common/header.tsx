@@ -10,7 +10,7 @@ export function Header({ user }: HeaderProps) {
   const isAuthenticated = !!user;
 
   if (isAuthenticated) {
-    return <Navbar user={user} />;
+    return <Navbar user={use/>;
   }
 
   return <PublicHeader />;
