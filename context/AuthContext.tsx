@@ -1,7 +1,7 @@
 "use client";
 
-
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import axios from 'axios';
 
 interface User {
   username: string;
@@ -21,6 +21,21 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+
+  // Fetch user from /api/me/ on initial mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await axios.get('/api/me/', { withCredentials: true });
+        setUser(response.data); // response.data should be the user object
+      } catch (error) {
+        console.log('User not authenticated:', error);
+        setUser(null);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, setUser }}>

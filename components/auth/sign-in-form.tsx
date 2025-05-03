@@ -39,25 +39,31 @@ const SignInForm = () => {
   const router = useRouter();
   const onSubmit = async (values: UserLoginSchemaType) => {
     try {
-      const res = await axios.post("http://localhost:8000/api/signin/", {
+      // Sign in user
+      await axios.post("http://localhost:8000/api/signin/", {
         email: values.email,
         password: values.password,
+      }, {
+        withCredentials: true,
       });
-  
-      const token = res.data.token;
-      
-      // Save the token as a cookie
-      document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict`;
-  
+
+      // Fetch authenticated user data
+      const res = await axios.get("http://localhost:8000/api/me/", {
+        withCredentials: true,
+      });
+
+      // Update AuthContext
+      setUser(res.data);
+
       toast.success("Login success, redirecting...");
       setError(null);
-  
-      // Important: use full reload so server sees cookie
-      window.location.href = "/dashboard";
+
+      // Navigate to dashboard
+      router.push("/dashboard");
     } catch (error: any) {
-      setError(error.response.data?.error || "An error occurred");
+      setError(error.response?.data?.error || "An error occurred");
     }
-  };  
+  };
 
 
   return (
