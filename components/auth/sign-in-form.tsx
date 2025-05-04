@@ -48,6 +48,10 @@ const SignInForm = () => {
         password: values.password,
       }, {
         withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        }
       });
 
       // Fetch authenticated user data
