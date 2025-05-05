@@ -1,36 +1,59 @@
-"use client";
+"use client"
 
-import { ModeToggle } from "@/components/common/mode-toggle";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/common/mode-toggle"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { navigationItems } from "@/data";
-import { useAuth } from "@/hooks/use-auth";
-import { Briefcase, LogOut, Menu, Settings, User, X } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { NavItem } from "./nav-item";
-import { MobileMenu } from "./mobile-menu";
+} from "@/components/ui/dropdown-menu"
+import { navigationItems } from "@/data"
+import { useAuth } from "@/hooks/use-auth"
+import { Briefcase, LogOut, Menu, Settings, User, X } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useState, useEffect } from "react"
+import { NavItem } from "./nav-item"
+import { MobileMenu } from "./mobile-menu"
 
 export function Navbar() {
-  const { user, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const isAuthenticated = !!user;
+  const { user, logout, loading, isAuthenticated, checkAuth } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
 
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev)
 
   const isActive = (url: string) =>
-    pathname === url || (pathname.startsWith(url) && url !== "/");
+    pathname === url || (pathname.startsWith(url) && url !== "/")
+
+  if (loading) {
+    return (
+      <nav className="sticky top-0 z-50 border-b border-border bg-background">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center">
+                <div className="mr-2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-md">
+                  <Briefcase size={20} />
+                </div>
+                <span className="hidden text-lg font-semibold md:block">
+                  Education & Career Guidance
+                </span>
+              </Link>
+            </div>
+            <div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
+          </div>
+        </div>
+      </nav>
+    )
+  }
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background">
@@ -48,7 +71,7 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Navigation - Only shown when authenticated */}
+          {/* Desktop Navigation */}
           {isAuthenticated && (
             <div className="hidden md:flex md:items-center md:space-x-1">
               {navigationItems.map((item) => (
@@ -64,11 +87,11 @@ export function Navbar() {
             </div>
           )}
 
-          {/* Right side buttons */}
+          {/* Right side */}
           <div className="flex items-center">
+            <ModeToggle />
             {isAuthenticated ? (
               <>
-                <ModeToggle />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -77,7 +100,7 @@ export function Navbar() {
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage
-                          src={user?.image || "/placeholder.svg?height=32&width=32"}
+                          src={user?.image || "/placeholder.svg"}
                           alt={user?.username || "User"}
                         />
                         <AvatarFallback>
@@ -93,13 +116,13 @@ export function Navbar() {
                         {user?.email}
                       </p>
                     </div>
-                    <DropdownMenuItem asChild className="cursor-pointer">
+                    <DropdownMenuItem asChild>
                       <Link href="/profile" className="flex items-center">
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="cursor-pointer">
+                    <DropdownMenuItem asChild>
                       <Link href="/settings" className="flex items-center">
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Settings</span>
@@ -108,7 +131,7 @@ export function Navbar() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={logout}
-                      className="cursor-pointer text-destructive focus:text-destructive"
+                      className="cursor-pointer text-destructive"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
@@ -116,7 +139,7 @@ export function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Mobile menu button - only for authenticated users */}
+                {/* Mobile Menu Button */}
                 <div className="ml-2 md:hidden">
                   <Button
                     variant="ghost"
@@ -133,7 +156,7 @@ export function Navbar() {
                 </div>
               </>
             ) : (
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 ml-2">
                 <Button variant="outline" asChild>
                   <Link href="/sign-in">Log in</Link>
                 </Button>
@@ -146,11 +169,13 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu overlay */}
-      <MobileMenu
-        isOpen={isAuthenticated && mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-      />
+      {/* Mobile Menu Overlay */}
+      {isAuthenticated && (
+        <MobileMenu
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
+      )}
     </nav>
-  );
+  )
 }

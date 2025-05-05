@@ -2,7 +2,7 @@
 "use client";
 
 import type React from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/use-auth";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -66,19 +66,21 @@ interface SkillData {
   value: number;
 }
 
+
 interface DashboardPageProps {
-  user: SessionUser;
+  user: any; // Ideally replace `any` with your actual `User` type
 }
 
 export default function DashboardPage({ user }: DashboardPageProps) {
   const { user: authUser, setUser } = useAuth();
 
-  // Sync server-provided user into AuthContext on mount
+  // Hydrate the context with server-side user on initial mount
   useEffect(() => {
     if (user && !authUser) {
       setUser(user);
     }
   }, [user, authUser, setUser]);
+
   const [activeTab, setActiveTab] = useState("overview");
   const [aiRecommendations, setAiRecommendations] = useState<{
     careerMatch: string;
@@ -118,7 +120,7 @@ export default function DashboardPage({ user }: DashboardPageProps) {
 
   // Mock data for the dashboard
   const userData = {
-    username: user?.username || "User",
+    username: authUser?.username || "User",
     completedAssessments: 2,
     totalAssessments: 5,
     skillsMatched: 65,

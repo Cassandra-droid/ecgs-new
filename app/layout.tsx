@@ -2,12 +2,14 @@
 
 import BackToTopButton from "@/components/common/back-button";
 import { ThemeProvider } from "@/components/common/theme-provider";
-import { AuthProvider } from "@/context/AuthContext"; // ⬅️ import AuthProvider
+ // ⬅️ import AuthProvider
 import type { Metadata } from "next";
+import { AuthProvider } from "@/hooks/use-auth"
 import { DM_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
+import { Navbar } from "@/components/main/common/navbar"
 
 // For headings
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -49,6 +51,7 @@ export default function RootLayout({
         />
         {/* Wrap with AuthProvider */}
         <AuthProvider>
+          <Navbar />
           <ThemeProvider
             attribute="class"
             defaultTheme="light"

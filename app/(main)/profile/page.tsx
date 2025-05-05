@@ -1,32 +1,56 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCurrentUser } from "@/lib/auth"
-import Link from "next/link"
 import ProfileHeader from "@/components/profile/profile-header"
 import PersonalInfoTab from "@/components/profile/personal-info-tab"
 import SkillsTab from "@/components/profile/skills-tab"
 import EducationTab from "@/components/profile/education-tab"
 import InterestsTab from "@/components/profile/interests-tab"
 import SecurityTab from "@/components/profile/security-tab"
+import { useAuth } from "@/hooks/use-auth"
 import { getUserProfile } from "@/lib/profile"
 
-// Skill and Interest Types
 interface Skill {
-  id: string;
-  name: string;
-  level: string;
+  id: string
+  name: string
+  level: string
 }
 
 interface Interest {
-  id: string;
-  name: string;
-  category: string;
+  id: string
+  name: string
+  category: string
 }
 
-// Profile Component
-const Profile = async () => {
-  const user = await getCurrentUser()
-  const profile = await getUserProfile(user?.id)
+const Profile = () => {
+  const router = useRouter()
+  const { user, loading, isAuthenticated } = useAuth()
+  const [profile, setProfile] = useState<any>(null)
+
+  useEffect(() => {
+   // if (!loading && !isAuthenticated) {
+    //  router.push("/sign-in")
+  //  }
+  },
+   [loading, isAuthenticated, router])
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user?.id) {
+        const profileData = await getUserProfile(user.id)
+        setProfile(profileData)
+      }
+    }
+    fetchProfile()
+  }, [user])
+
+  if (loading || !user) {
+    return <div className="text-center py-10">Loading profile...</div>
+  }
 
   return (
     <div className="container mx-auto py-6">
@@ -45,9 +69,9 @@ const Profile = async () => {
         <CardContent>
           <ProfileHeader
             user={{
-              username: user?.username || "",
-              email: user?.email || "",
-              image: user?.image || "",
+              username: user.username,
+              email: user.email,
+              image: user.image || "",
               title: profile?.title || "",
               bio: profile?.bio || "",
             }}
@@ -65,8 +89,8 @@ const Profile = async () => {
             <TabsContent value="personal">
               <PersonalInfoTab
                 user={{
-                  username: user?.username || "",
-                  email: user?.email || "",
+                  username: user.username,
+                  email: user.email,
                   title: profile?.title || "",
                   bio: profile?.bio || "",
                   gender: profile?.gender || "",
@@ -83,12 +107,12 @@ const Profile = async () => {
                   ...skill,
                   level: skill.level || "Unknown",
                 }))}
-                userId={user?.id || ""}
+                userId={user.id || ""}
               />
             </TabsContent>
 
             <TabsContent value="education">
-              <EducationTab education={profile?.education || []} userId={user?.id || ""} />
+              <EducationTab education={profile?.education || []} userId={user.id || ""} />
             </TabsContent>
 
             <TabsContent value="interests">
@@ -97,7 +121,7 @@ const Profile = async () => {
                   ...interest,
                   category: interest.category || "",
                 }))}
-                userId={user?.id || ""}
+                userId={user.id || ""}
               />
             </TabsContent>
 
@@ -112,4 +136,3 @@ const Profile = async () => {
 }
 
 export default Profile
-

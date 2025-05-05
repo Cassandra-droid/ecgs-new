@@ -1,83 +1,61 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { UserLoginSchemaType } from "@/types";
-import { userLoginSchema } from "@/validation/schemas";
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
-import { EyeIcon, EyeOff } from "lucide-react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import toast from "react-hot-toast";
-import { ImSpinner2 } from "react-icons/im";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-
+import { Button } from "@/components/ui/button"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import type { UserLoginSchemaType } from "@/types"
+import { userLoginSchema } from "@/validation/schemas"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { EyeIcon, EyeOff } from "lucide-react"
+import Link from "next/link"
+import { useSearchParams, useRouter } from "next/navigation"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import toast from "react-hot-toast"
+import { ImSpinner2 } from "react-icons/im"
+import { useAuth } from "@/hooks/use-auth"
 
 const SignInForm = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const { login, checkAuth } = useAuth()
 
-  const message = searchParams.get("message");
-  
+  const message = searchParams.get("message")
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
 
   const form = useForm<UserLoginSchemaType>({
     resolver: zodResolver(userLoginSchema),
-  });
+  })
 
-  const { setUser } = useAuth();
-
-  const router = useRouter();
   const onSubmit = async (values: UserLoginSchemaType) => {
     try {
-      // Sign in user
-      await axios.post("http://localhost:8000/api/signin/", {
-        email: values.email,
-        password: values.password,
-      }, {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        }
-      });
+      setError(null)
+      const success = await login(values.email, values.password)
 
-      // Fetch authenticated user data
-      const res = await axios.get("http://localhost:8000/api/me/", {
-        withCredentials: true,
-      });
+      if (success) {
+        toast.success("Login successful, redirecting...")
 
-      // Update AuthContext
-      setUser(res.data);
+        // Force a re-check of authentication status
+        await checkAuth()
 
-      toast.success("Login success, redirecting...");
-      setError(null);
-
-      // Navigate to dashboard
-      router.push("/dashboard");
+        // Use window.location for a full page navigation
+        window.location.href = callbackUrl
+      } else {
+        setError("Invalid email or password")
+        toast.error("Login failed")
+      }
     } catch (error: any) {
-      setError(error.response?.data?.error || "An error occurred");
+      console.error("Login error:", error)
+      setError(error.response?.data?.error || "An error occurred")
+      toast.error("Login failed")
     }
-  };
-
+  }
 
   return (
     <div>
-      <h1 className="mb-4 text-center text-2xl font-semibold">
-        Login to your account
-      </h1>
+      <h1 className="mb-4 text-center text-2xl font-semibold">Login to your account</h1>
       {error && (
         <div className="my-2 rounded-lg bg-red-500/20 p-2">
           <span className="text-red-500">{error}</span>
@@ -140,21 +118,14 @@ const SignInForm = () => {
             )}
           />
           <div className="mt-2 flex justify-end">
-            <Link
-              href="/forgot-password"
-              className="text-sm text-brand underline"
-            >
+            <Link href="/forgot-password" className="text-sm text-brand underline">
               Forgot Password?
             </Link>
           </div>
           <div className="mt-5">
-            <Button
-              type="submit"
-              className="w-full rounded-lg"
-              disabled={form.formState.isSubmitting}
-            >
+            <Button type="submit" className="w-full rounded-lg" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (
-                <div className="gap-x-2 flex-center-center">
+                <div className="flex items-center justify-center gap-x-2">
                   <ImSpinner2 className="animate-spin text-lg" />
                   <span>Processing...</span>
                 </div>
@@ -173,7 +144,7 @@ const SignInForm = () => {
         </Link>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SignInForm;
+export default SignInForm
