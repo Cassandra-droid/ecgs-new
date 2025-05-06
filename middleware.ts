@@ -5,15 +5,14 @@ import type { NextRequest } from "next/server"
 async function verifyToken(token: string) {
   try {
     console.log("Verifying session token:", token)
-    
-    // Call your backend API to verify the token
+
     const response = await fetch("http://localhost:8000/api/verify-token", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ token }),
-      cache: "no-store", // Important: Don't cache this request
+      cache: "no-store",
     })
 
     if (!response.ok) {
@@ -32,31 +31,37 @@ async function verifyToken(token: string) {
 }
 
 export async function middleware(request: NextRequest) {
-  console.log("Middleware running on path:", request.nextUrl.pathname)
-  
-  // Debug all cookies
+  const { pathname } = request.nextUrl
+  console.log("Middleware running on path:", pathname)
+
   const allCookies = request.cookies.getAll()
   console.log(
     "All cookies:",
-    allCookies.map((c) => `${c.name}: ${c.value.substring(0, 10)}...`),
+    allCookies.map((c) => `${c.name}: ${c.value.substring(0, 10)}...`)
   )
-  
+
   const token = request.cookies.get("auth_token")?.value
   console.log("Token present:", !!token)
 
-  const { pathname } = request.nextUrl
-
-  const isAuthPage = pathname === "/sign-in" || pathname === "/sign-up"
-  const isProtectedRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/admin")
-  const isUserDashboard = pathname.startsWith("/dashboard")
+  // Route classification
+  const isAuthPage = ["/sign-in", "/sign-up"].includes(pathname)
+  const protectedRoutes = ["/dashboard", "/admin", "/profile"]
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  )
   const isAdminRoute = pathname.startsWith("/admin")
+  const isUserDashboard = pathname.startsWith("/dashboard")
 
-  // Allow public assets and API requests
-  if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
+  // Skip middleware for static files and Next.js internals
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.includes(".")
+  ) {
     return NextResponse.next()
   }
 
-  // If user has token
+  // If token exists
   if (token) {
     const user = await verifyToken(token)
     console.log("User from token:", user ? "found" : "not found")
@@ -65,19 +70,18 @@ export async function middleware(request: NextRequest) {
       const role = user.role
       console.log("User role:", role)
 
-      // Prevent logged-in users from accessing sign-in/up pages
       if (isAuthPage) {
         console.log("Redirecting from auth page to dashboard")
-        return NextResponse.redirect(new URL(role === "Admin" ? "/admin" : "/dashboard", request.url))
+        return NextResponse.redirect(
+          new URL(role === "Admin" ? "/admin" : "/dashboard", request.url)
+        )
       }
 
-      // Restrict admin pages to only Admins
       if (isAdminRoute && role !== "Admin") {
         console.log("Non-admin trying to access admin route")
         return NextResponse.redirect(new URL("/", request.url))
       }
 
-      // Prevent Admins from accessing user dashboard
       if (isUserDashboard && role === "Admin") {
         console.log("Admin trying to access user dashboard")
         return NextResponse.redirect(new URL("/admin", request.url))
@@ -86,7 +90,6 @@ export async function middleware(request: NextRequest) {
       console.log("Auth check passed, proceeding to route")
       return NextResponse.next()
     } else {
-      // Invalid token: clear cookie and redirect to sign-in
       console.log("Invalid token, redirecting to sign-in")
       const response = NextResponse.redirect(new URL("/sign-in", request.url))
       response.cookies.delete("auth_token")
@@ -94,20 +97,20 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If user does not have a token and tries to access protected route
+  // No token and trying to access protected route
   if (isProtectedRoute) {
     console.log("Unauthenticated user trying to access protected route")
     const url = new URL("/sign-in", request.url)
-    url.searchParams.set("callbackUrl", pathname) // redirect back after login
+    url.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(url)
   }
 
-  // Allow access to public pages
+  // Allow public routes
   console.log("Allowing access to public page")
   return NextResponse.next()
 }
 
-// ✅ Always enable middleware in all environments (dev + prod)
+// ✅ Middleware applies to all routes except static and internal ones
 export const config = {
-  matcher: ["/((?!.*\\..*|_next|dashboard).*)"],
+  matcher: ["/((?!_next/|api/|.*\\..*).*)"],
 }

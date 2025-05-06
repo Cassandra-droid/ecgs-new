@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-        },
+        }
       )
       const userResponse = await axios.get("http://localhost:8000/api/me/", {
         withCredentials: true,
@@ -89,6 +89,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   useEffect(() => {
+    const getCSRFToken = async () => {
+      try {
+        await axios.get("http://localhost:8000/api/csrf/", {
+          withCredentials: true,
+        })
+        console.log("CSRF cookie set")
+      } catch (error) {
+        console.error("Failed to fetch CSRF token:", error)
+      }
+    }
+
+    getCSRFToken()
     checkAuth()
   }, [])
 

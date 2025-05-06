@@ -20,3 +20,33 @@ export async function getCurrentUser() {
     return null
   }
 }
+
+
+export function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? match[2] : null;
+}
+
+export async function verifyTokenFromCookie(): Promise<string | null> {
+  const token = getCookie("auth_token");
+
+  if (!token) return null;
+
+  try {
+    const res = await fetch("http://localhost:8000/api/verify-token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return data?.valid ? token : null;
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return null;
+  }
+}

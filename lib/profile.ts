@@ -2,14 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import pool from "@/lib/db"
-import { getServerSession } from "@/lib/auth"
+import { getCookie } from "@/lib/csrf"
+import { verifyTokenFromCookie } from "@/lib/auth"
 
-// Utility
-async function getSession() {
-  const session = await getServerSession()
-  if (!session || !session.user) throw new Error("Unauthorized")
-  return session
-}
+
 
 // Default profile
 const defaultEmptyProfile = {
@@ -49,48 +45,40 @@ export async function ensureUserProfile(token: string) {
 }
 
 // Get user profile from Django backend
-export async function getUserProfile(token: string) {
+export async function getUserProfile() {
   try {
     const res = await fetch('http://localhost:8000/api/profile/', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+      method: 'GET',
+      credentials: 'include', // ⬅️ This is the key part
+    });
 
     if (!res.ok) {
-      throw new Error('Failed to fetch user profile')
+      throw new Error('Failed to fetch user profile');
     }
 
-    const profile = await res.json()
-    return profile
+    const profile = await res.json();
+    return profile;
   } catch (error) {
-    console.error("Error fetching profile:", error)
-    throw error
+    console.error("Error fetching profile:", error);
+    throw error;
   }
 }
+export async function updateProfileHeader(data: {...}) {
+  const token = await verifyTokenFromCookie()
+  if (!token) throw new Error("Invalid or missing token")
 
-// Update profile header (name, title, bio)
-export async function updateProfileHeader(data: {
-  name: string
-  title: string
-  bio: string
-}) {
   const res = await fetch("http://localhost:8000/api/header/", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
     },
-    credentials: "include", // send cookies for session auth
+    credentials: "include",
     body: JSON.stringify(data),
-  })
+  });
 
-  if (!res.ok) {
-    const errorText = await res.text()
-    console.error("Backend error:", errorText)
-    throw new Error("Failed to update profile header")
-  }
-
-  return await res.json()
+  if (!res.ok) throw new Error("Failed to update profile header");
+  return await res.json();
 }
 
 // Update personal info

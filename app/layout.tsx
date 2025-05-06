@@ -51,7 +51,7 @@ export default function RootLayout({
         />
         {/* Wrap with AuthProvider */}
         <AuthProvider>
-          <Navbar />
+          
           <ThemeProvider
             attribute="class"
             defaultTheme="light"

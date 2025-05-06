@@ -32,9 +32,10 @@ const Profile = () => {
   const [profile, setProfile] = useState<any>(null)
 
   useEffect(() => {
-   // if (!loading && !isAuthenticated) {
-    //  router.push("/sign-in")
-  //  }
+    
+   if (!loading && !isAuthenticated) {
+      router.push("/sign-in")
+    }
   },
    [loading, isAuthenticated, router])
 
