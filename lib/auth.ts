@@ -1,4 +1,6 @@
 // Create this file if it doesn't exist
+'use server'
+
 import { cookies } from "next/headers"
 import { jwtVerify } from "jose"
 
@@ -22,15 +24,11 @@ export async function getCurrentUser() {
 }
 
 
-export function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? match[2] : null;
-}
 
 export async function verifyTokenFromCookie(): Promise<string | null> {
-  const token = getCookie("auth_token");
+  const token = cookies().get("auth_token")?.value
 
-  if (!token) return null;
+  if (!token) return null
 
   try {
     const res = await fetch("http://localhost:8000/api/verify-token", {
@@ -39,14 +37,14 @@ export async function verifyTokenFromCookie(): Promise<string | null> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ token }),
-    });
+    })
 
-    if (!res.ok) return null;
+    if (!res.ok) return null
 
-    const data = await res.json();
-    return data?.valid ? token : null;
+    const data = await res.json()
+    return data?.valid ? token : null
   } catch (error) {
-    console.error("Token verification failed:", error);
-    return null;
+    console.error("Token verification failed:", error)
+    return null
   }
 }

@@ -1,11 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import pool from "@/lib/db"
-import { getCookie } from "@/lib/csrf"
 import { verifyTokenFromCookie } from "@/lib/auth"
-
-
 
 // Default profile
 const defaultEmptyProfile = {
@@ -26,12 +22,12 @@ const defaultEmptyProfile = {
 
 export async function ensureUserProfile(token: string) {
   try {
-    const res = await fetch('http://localhost:8000/api/ensure-profile/', {
-      method: 'POST',
+    const res = await fetch("http://localhost:8000/api/ensure-profile/", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     })
 
     if (!res.ok) throw new Error("Failed to ensure user profile")
@@ -46,42 +42,56 @@ export async function ensureUserProfile(token: string) {
 
 // Get user profile from Django backend
 export async function getUserProfile() {
-  try {
-    const res = await fetch('http://localhost:8000/api/profile/', {
-      method: 'GET',
-      credentials: 'include', // ⬅️ This is the key part
-    });
-
-    if (!res.ok) {
-      throw new Error('Failed to fetch user profile');
-    }
-
-    const profile = await res.json();
-    return profile;
-  } catch (error) {
-    console.error("Error fetching profile:", error);
-    throw error;
-  }
-}
-export async function updateProfileHeader(data: {...}) {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
-  const res = await fetch("http://localhost:8000/api/header/", {
-    method: "POST",
+  try {
+    const res = await fetch("http://localhost:8000/api/profile/", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+    })
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch user profile")
+    }
+
+    const profile = await res.json()
+    revalidatePath("/profile")
+    return profile
+  } catch (error) {
+    console.error("Error fetching profile:", error)
+    throw error
+  }
+}
+
+export async function updateProfileHeader(data: {
+  name: string
+  title: string
+  bio: string
+}) {
+  const token = await verifyTokenFromCookie()
+  if (!token) throw new Error("Invalid or missing token")
+
+  const res = await fetch("http://localhost:8000/api/profile/header/", {
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
     credentials: "include",
     body: JSON.stringify(data),
-  });
+  })
 
-  if (!res.ok) throw new Error("Failed to update profile header");
-  return await res.json();
+  if (!res.ok) throw new Error("Failed to update profile header")
+
+  const result = await res.json()
+  revalidatePath("/profile")
+  return result
 }
 
-// Update personal info
 export async function updatePersonalInfo(data: {
   name: string
   email: string
@@ -96,33 +106,46 @@ export async function updatePersonalInfo(data: {
   phone: string
   website: string
 }) {
-  const res = await fetch("http://localhost:8000/api/personal-info/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include", // Ensures cookies are sent
-    body: JSON.stringify(data),
-  })
+  const token = await verifyTokenFromCookie()
+  if (!token) throw new Error("Invalid or missing token")
 
-  if (!res.ok) {
-    console.error("Failed to update profile:", await res.text())
-    throw new Error("Failed to update profile")
-  }
-
-  return await res.json()
-}
-
-
-// Update skills
-export async function updateUserSkills(skills: { name: string; level: string }[]) {
   try {
-    const response = await fetch("http://localhost:8000/api/skills/", {
-      method: "POST",
+    const res = await fetch("http://localhost:8000/api/profile/personal-info/", {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      credentials: "include", // <- this is important for cookies/session auth
+      credentials: "include",
+      body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+      console.error("Failed to update profile:", await res.text())
+      throw new Error("Failed to update profile")
+    }
+
+    const result = await res.json()
+    revalidatePath("/profile")
+    return result
+  } catch (error) {
+    console.error("Error updating personal info:", error)
+    throw error
+  }
+}
+
+export async function updateUserSkills(skills: { name: string; level: string }[]) {
+  const token = await verifyTokenFromCookie()
+  if (!token) throw new Error("Invalid or missing token")
+
+  try {
+    const response = await fetch("http://localhost:8000/api/profile/skills/", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
       body: JSON.stringify({ skills }),
     })
 
@@ -130,28 +153,32 @@ export async function updateUserSkills(skills: { name: string; level: string }[]
       throw new Error("Failed to update skills")
     }
 
-    return await response.json()
+    const result = await response.json()
+    revalidatePath("/profile")
+    return result
   } catch (error) {
     console.error("Error updating skills:", error)
     throw error
   }
 }
 
-
-// Update interests
 export async function updateUserInterests(interests: string[]) {
+  const token = await verifyTokenFromCookie()
+  if (!token) throw new Error("Invalid or missing token")
+
   try {
     const formattedInterests = interests.map((interest) => ({
       name: interest,
-      category: "Personal", // or allow custom categories if needed
+      category: "Personal",
     }))
 
-    const response = await fetch("http://localhost:8000/api/interests/", {
-      method: "POST",
+    const response = await fetch("http://localhost:8000/api/profile/interests/", {
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      credentials: "include", // 👈 include cookies for authentication
+      credentials: "include",
       body: JSON.stringify({ interests: formattedInterests }),
     })
 
@@ -159,23 +186,30 @@ export async function updateUserInterests(interests: string[]) {
       throw new Error("Failed to update interests")
     }
 
-    return await response.json()
+    const result = await response.json()
+    revalidatePath("/profile")
+    return result
   } catch (error) {
     console.error("Error updating interests:", error)
     throw error
   }
 }
 
+export async function updateEducation(
+  userId: string,
+  educationEntries: { institution: string; degree: string; year: string }[],
+) {
+  const token = await verifyTokenFromCookie()
+  if (!token) throw new Error("Invalid or missing token")
 
-// Update education
-export async function updateEducation(educationEntries: { institution: string; degree: string; year: string }[]) {
   try {
-    const response = await fetch("http://localhost:8000/api/education/", {
+    const response = await fetch("http://localhost:8000/api/profile/education/", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      credentials: "include", // 👈 sends cookies
+      credentials: "include",
       body: JSON.stringify({ education: educationEntries }),
     })
 
@@ -183,9 +217,27 @@ export async function updateEducation(educationEntries: { institution: string; d
       throw new Error("Failed to update education")
     }
 
-    return await response.json()
+    const result = await response.json()
+    revalidatePath("/profile")
+    return result
   } catch (error) {
     console.error("Error updating education:", error)
     throw error
   }
+}
+
+export async function getEducation() {
+  const token = await verifyTokenFromCookie()
+  if (!token) throw new Error("Invalid or missing token")
+
+  const res = await fetch("http://localhost:8000/api/profile/education/", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  })
+
+  if (!res.ok) throw new Error("Failed to fetch education")
+  return await res.json()
 }

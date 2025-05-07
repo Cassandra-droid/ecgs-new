@@ -11,10 +11,10 @@ import { Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "@/hooks/use-toast"
 import { updateEducation } from "@/lib/profile"
-import { useAuth } from "@/context/AuthContext"; 
 
 interface Education {
   id?: string
+  userId?: string
   institution: string
   degree: string
   field?: string | null
@@ -28,13 +28,13 @@ interface EducationTabProps {
   userId: string
 }
 
-export default function EducationTab({ education }: EducationTabProps) {
-  const { user } = useAuth(); // ✅ Access the logged-in user
+export default function EducationTab({ education, userId }: EducationTabProps) {
   const [userEducation, setUserEducation] = useState<Education[]>(education)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [newEducation, setNewEducation] = useState<Education>({
     id: "",
+    userId,
     institution: "",
     degree: "",
     field: "",
@@ -46,7 +46,8 @@ export default function EducationTab({ education }: EducationTabProps) {
   const handleAddEducation = () => {
     setIsAddingNew(true)
     setNewEducation({
-      id: Date.now().toString(), // Temporary ID for UI purposes
+      id: Date.now().toString(), // temporary ID
+      userId,
       institution: "",
       degree: "",
       field: "",
@@ -75,26 +76,30 @@ export default function EducationTab({ education }: EducationTabProps) {
       return
     }
 
-    setUserEducation([...userEducation, newEducation])
+    setUserEducation([...userEducation, { ...newEducation, userId }])
     setIsAddingNew(false)
   }
 
   const handleRemoveEducation = (id: string) => {
     setUserEducation(userEducation.filter((edu) => edu.id !== id))
   }
-
   const handleSaveEducation = async () => {
     setIsLoading(true)
 
     try {
       // We only need to send the fields that match our database schema
-      const educationToSave = userEducation.map(({ institution, degree, startYear, endYear }) => ({
+      const educationToSave = userEducation.map(({ institution, degree, startYear, endYear, field, description }) => ({
         institution,
         degree,
-        year: `${startYear || "Unknown"} - ${endYear || "Present"}`,
+        field: field || "",
+        start_year: startYear || "",
+        end_year: endYear || "",
+        description: description || "",
       }))
 
-      await updateEducation(educationToSave)
+      // Call the updateEducation function with the education data
+      await updateEducation(userId, educationToSave)
+
       toast({
         title: "Education updated",
         description: "Your education history has been updated successfully.",
