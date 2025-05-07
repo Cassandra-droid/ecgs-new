@@ -75,7 +75,7 @@ export async function updateProfileHeader(data: {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
-  const res = await fetch("http://localhost:8000/api/profile/header/", {
+  const res = await fetch("http://localhost:8000/api/header/", {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -110,7 +110,7 @@ export async function updatePersonalInfo(data: {
   if (!token) throw new Error("Invalid or missing token")
 
   try {
-    const res = await fetch("http://localhost:8000/api/profile/personal-info/", {
+    const res = await fetch("http://localhost:8000/api/personal-info/", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -172,7 +172,7 @@ export async function updateUserInterests(interests: string[]) {
       category: "Personal",
     }))
 
-    const response = await fetch("http://localhost:8000/api/profile/interests/", {
+    const response = await fetch("http://localhost:8000/api/interests/", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -203,7 +203,7 @@ export async function updateEducation(
   if (!token) throw new Error("Invalid or missing token")
 
   try {
-    const response = await fetch("http://localhost:8000/api/profile/education/", {
+    const response = await fetch("http://localhost:8000/api/education/", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -230,7 +230,7 @@ export async function getEducation() {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
-  const res = await fetch("http://localhost:8000/api/profile/education/", {
+  const res = await fetch("http://localhost:8000/api/education/", {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

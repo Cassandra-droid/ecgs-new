@@ -56,12 +56,40 @@ export default function PersonalInfoTab({ user }: PersonalInfoTabProps) {
     setIsLoading(true)
 
     try {
-      await updatePersonalInfo(formData)
+      // Fix website URL format if needed
+      let websiteValue = formData.website.trim()
+      if (websiteValue && !websiteValue.match(/^https?:\/\//)) {
+        websiteValue = `https://${websiteValue}`
+      }
+
+      // Convert age to number if it's a valid number
+      const ageValue = formData.age ? Number.parseInt(formData.age, 10) : null
+
+      // Create properly formatted data
+      const dataToSend = {
+        name: formData.name,
+        email: formData.email,
+        title: formData.title || "",
+        bio: formData.bio || "",
+        gender: formData.gender || "",
+        age: ageValue,
+        educationLevel: formData.educationLevel || "",
+        experience: formData.experience || "",
+        careerPreferences: formData.careerPreferences || "",
+        location: formData.location || "",
+        phone: formData.phone || "",
+        website: websiteValue || "",
+      }
+
+      console.log("Sending personal info data:", dataToSend)
+      await updatePersonalInfo(dataToSend)
+
       toast({
         title: "Profile updated",
         description: "Your personal information has been updated successfully.",
       })
     } catch (error) {
+      console.error("Error updating personal info:", error)
       toast({
         title: "Error",
         description: "Failed to update profile. Please try again.",
@@ -158,6 +186,11 @@ export default function PersonalInfoTab({ user }: PersonalInfoTabProps) {
                 placeholder="e.g. https://yourwebsite.com"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="age">Age</Label>
+              <Input id="age" name="age" value={formData.age} onChange={handleChange} placeholder="e.g. 30" />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -169,6 +202,8 @@ export default function PersonalInfoTab({ user }: PersonalInfoTabProps) {
               onChange={handleChange}
               placeholder="Tell us about yourself"
             />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="educationLevel">Education Level</Label>
             <Input
@@ -177,7 +212,6 @@ export default function PersonalInfoTab({ user }: PersonalInfoTabProps) {
               value={formData.educationLevel}
               onChange={handleChange}
               placeholder="e.g. Bachelor's Degree"
-              required
             />
           </div>
 
@@ -189,7 +223,6 @@ export default function PersonalInfoTab({ user }: PersonalInfoTabProps) {
               value={formData.experience}
               onChange={handleChange}
               placeholder="e.g. 5 years in software development"
-              required
             />
           </div>
 
@@ -201,26 +234,10 @@ export default function PersonalInfoTab({ user }: PersonalInfoTabProps) {
               value={formData.careerPreferences}
               onChange={handleChange}
               placeholder="e.g. Remote work, Full-time"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="age">Age</Label>
-            <Input
-              id="age"
-              name="age"
-              value={formData.age}
-              onChange={handleChange}
-              placeholder="e.g. 30"
             />
           </div>
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>

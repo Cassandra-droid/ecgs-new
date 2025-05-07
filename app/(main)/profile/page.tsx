@@ -98,6 +98,11 @@ const Profile = () => {
                   location: profile?.location || "",
                   phone: profile?.phone || "",
                   website: profile?.website || "",
+                  age: profile?.age || "",
+                  education_level: profile?.education_level || "",
+                  experience: profile?.experience || "",
+                  career_preferences: profile?.career_preferences || "",
+
                 }}
               />
             </TabsContent>
