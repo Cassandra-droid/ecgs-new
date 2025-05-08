@@ -16,7 +16,7 @@ export default function JobList() {
   useEffect(() => {
     async function loadJobs() {
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/jobs/");
+        const response = await fetch("/api/jobs");
         const data = await response.json();
         setJobs(data);
       } catch (error) {
