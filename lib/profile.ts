@@ -139,7 +139,7 @@ export async function updateUserSkills(skills: { name: string; level: string }[]
   if (!token) throw new Error("Invalid or missing token")
 
   try {
-    const response = await fetch("http://localhost:8000/api/profile/skills/", {
+    const response = await fetch("http://localhost:8000/api/skills/", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
