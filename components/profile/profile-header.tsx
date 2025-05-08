@@ -21,6 +21,7 @@ export default function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: profile?.name || "",
+    email: profile?.email || "",
     title: profile?.title || "",
     bio: profile?.bio || "",
   })
@@ -44,7 +45,7 @@ export default function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps)
     }
 
     try {
-      setLoading(true)
+      await updateProfileHeader({ name: formData.name, email: formData.email })
       await updateProfileHeader(formData)
       toast({
         title: "Profile updated",

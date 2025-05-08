@@ -20,7 +20,7 @@ const defaultEmptyProfile = {
   interests: [],
 }
 
-// Ensure user profile function
+// Ensure user profile
 export async function ensureUserProfile(token: string) {
   try {
     const res = await fetch("http://localhost:8000/api/ensure-profile/", {
@@ -32,7 +32,6 @@ export async function ensureUserProfile(token: string) {
     })
 
     if (!res.ok) throw new Error("Failed to ensure user profile")
-
     const data = await res.json()
     return data.profile_id
   } catch (error) {
@@ -55,15 +54,37 @@ export async function getUserProfile() {
       credentials: "include",
     })
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch user profile")
-    }
-
+    if (!res.ok) throw new Error("Failed to fetch user profile")
     const profile = await res.json()
     revalidatePath("/profile")
     return profile
   } catch (error) {
     console.error("Error fetching profile:", error)
+    throw error
+  }
+}
+
+// Update profile header only (name + email)
+export async function updateProfileHeader(data: { name: string; email: string }) {
+  const token = await verifyTokenFromCookie()
+  if (!token) throw new Error("Invalid or missing token")
+
+  try {
+    const res = await fetch("http://localhost:8000/header/", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+
+    if (!res.ok) throw new Error("Failed to update profile header")
+    const result = await res.json()
+    revalidatePath("/profile")
+    return result
+  } catch (error) {
+    console.error("Error updating profile header:", error)
     throw error
   }
 }
@@ -111,7 +132,7 @@ export async function updatePersonalInfo(data: {
   }
 }
 
-// Update skills (without proficiency)
+// Update skills (no proficiency)
 export async function updateUserSkills(skills: string[]) {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
@@ -127,10 +148,7 @@ export async function updateUserSkills(skills: string[]) {
       body: JSON.stringify({ skills }),
     })
 
-    if (!response.ok) {
-      throw new Error("Failed to update skills")
-    }
-
+    if (!response.ok) throw new Error("Failed to update skills")
     const result = await response.json()
     revalidatePath("/profile")
     return result
@@ -161,10 +179,7 @@ export async function updateUserInterests(interests: string[]) {
       body: JSON.stringify({ interests: formattedInterests }),
     })
 
-    if (!response.ok) {
-      throw new Error("Failed to update interests")
-    }
-
+    if (!response.ok) throw new Error("Failed to update interests")
     const result = await response.json()
     revalidatePath("/profile")
     return result
@@ -193,10 +208,7 @@ export async function updateEducation(
       body: JSON.stringify({ education: educationEntries }),
     })
 
-    if (!response.ok) {
-      throw new Error("Failed to update education")
-    }
-
+    if (!response.ok) throw new Error("Failed to update education")
     const result = await response.json()
     revalidatePath("/profile")
     return result
@@ -206,7 +218,7 @@ export async function updateEducation(
   }
 }
 
-// Fetch education data
+// Get education data
 export async function getEducation() {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")

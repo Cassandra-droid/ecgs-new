@@ -40,7 +40,7 @@ export default function ProfileHeaderEdit({ user, onCancel }: ProfileHeaderEditP
     setIsLoading(true)
 
     try {
-      await updateProfileHeader(formData)
+      await updateProfileHeader({ ...formData, email: user.email })
       toast({
         title: "Profile updated",
         description: "Your profile header has been updated successfully.",
