@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { verifyTokenFromCookie } from "@/lib/auth"
 
-// Default profile
+// Default profile setup
 const defaultEmptyProfile = {
   title: "",
   bio: "",
@@ -20,6 +20,7 @@ const defaultEmptyProfile = {
   interests: [],
 }
 
+// Ensure user profile function
 export async function ensureUserProfile(token: string) {
   try {
     const res = await fetch("http://localhost:8000/api/ensure-profile/", {
@@ -40,7 +41,7 @@ export async function ensureUserProfile(token: string) {
   }
 }
 
-// Get user profile from Django backend
+// Get user profile
 export async function getUserProfile() {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
@@ -67,31 +68,7 @@ export async function getUserProfile() {
   }
 }
 
-export async function updateProfileHeader(data: {
-  name: string
-  title: string
-  bio: string
-}) {
-  const token = await verifyTokenFromCookie()
-  if (!token) throw new Error("Invalid or missing token")
-
-  const res = await fetch("http://localhost:8000/api/header/", {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    credentials: "include",
-    body: JSON.stringify(data),
-  })
-
-  if (!res.ok) throw new Error("Failed to update profile header")
-
-  const result = await res.json()
-  revalidatePath("/profile")
-  return result
-}
-
+// Update personal information
 export async function updatePersonalInfo(data: {
   name: string
   email: string
@@ -134,7 +111,8 @@ export async function updatePersonalInfo(data: {
   }
 }
 
-export async function updateUserSkills(skills: { name: string; level: string }[]) {
+// Update skills (without proficiency)
+export async function updateUserSkills(skills: string[]) {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
@@ -162,6 +140,7 @@ export async function updateUserSkills(skills: { name: string; level: string }[]
   }
 }
 
+// Update interests
 export async function updateUserInterests(interests: string[]) {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
@@ -195,6 +174,7 @@ export async function updateUserInterests(interests: string[]) {
   }
 }
 
+// Update education
 export async function updateEducation(
   userId: string,
   educationEntries: { institution: string; degree: string; year: string }[],
@@ -226,6 +206,7 @@ export async function updateEducation(
   }
 }
 
+// Fetch education data
 export async function getEducation() {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")

@@ -1,7 +1,7 @@
 import DeleteAccount from "@/components/profile/delete-account";
 import PasswordChangeForm from "@/components/profile/password-change-form";
 import ProfileDetails from "@/components/profile/profile-details";
-import ProfileUpdateForm from "@/components/profile/profile-update-form";
+import ProfileUpdateForm from "@/components/profile/complete-profile";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 
