@@ -117,7 +117,7 @@ export function Navbar() {
                       </p>
                     </div>
                     <DropdownMenuItem asChild>
-                      <Link href="/profile" className="flex items-center">
+                      <Link href="/profile/view" className="flex items-center">
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </Link>

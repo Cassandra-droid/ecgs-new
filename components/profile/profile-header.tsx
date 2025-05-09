@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { updateProfileHeader } from "@/lib/profile"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, CheckCircle2 } from "lucide-react"
 
 interface ProfileHeaderProps {
   profile: any
@@ -19,6 +19,7 @@ interface ProfileHeaderProps {
 
 export default function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [formData, setFormData] = useState({
     name: profile?.name || "",
     email: profile?.email || "",
@@ -34,6 +35,7 @@ export default function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSuccess(false)
 
     if (!formData.name || !formData.title) {
       toast({
@@ -45,13 +47,19 @@ export default function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps)
     }
 
     try {
-      await updateProfileHeader({ name: formData.name, email: formData.email })
+      setLoading(true)
       await updateProfileHeader(formData)
+
+      setSuccess(true)
       toast({
         title: "Profile updated",
         description: "Your profile header has been updated successfully.",
       })
-      onUpdate()
+
+      // Wait a moment to show the success state before proceeding
+      setTimeout(() => {
+        onUpdate()
+      }, 1000)
     } catch (error) {
       console.error("Error updating profile header:", error)
       toast({
@@ -73,18 +81,45 @@ export default function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps)
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input id="name" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} />
+            <Label htmlFor="name">
+              Full Name <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="name"
+              name="name"
+              placeholder="John Doe"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Email field - read-only from user credentials */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              readOnly
+              disabled
+              className="bg-gray-50"
+            />
+            <p className="text-xs text-muted-foreground">Email cannot be changed as it's linked to your account</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title">Professional Title</Label>
+            <Label htmlFor="title">
+              Professional Title <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="title"
               name="title"
               placeholder="Software Engineer"
               value={formData.title}
               onChange={handleChange}
+              required
             />
           </div>
 
@@ -106,6 +141,11 @@ export default function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps)
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
+              </>
+            ) : success ? (
+              <>
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Saved Successfully
               </>
             ) : (
               "Save & Continue"

@@ -13,7 +13,8 @@ import InterestsSection from "@/components/profile/interests-section"
 import EducationSection from "@/components/profile/education-section"
 import CompleteProfile from "@/components/profile/complete-profile"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, CheckCircle2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("header")
@@ -21,6 +22,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null)
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const { toast } = useToast()
+  const router = useRouter()
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -50,19 +52,13 @@ export default function ProfilePage() {
     let completed = 0
     const total = 5 // 5 sections: header, personal info, skills, interests, education
 
-    // Check header completion
-    if (profileData.title && profileData.bio) {
+    // Check header completion (less strict requirements)
+    if (profileData.name && profileData.title) {
       completed++
     }
 
-    // Check personal info completion
-    if (
-      profileData.gender &&
-      profileData.age &&
-      profileData.education_level &&
-      profileData.experience &&
-      profileData.location
-    ) {
+    // Check personal info completion (less strict requirements)
+    if (profileData.gender && profileData.education_level && profileData.experience) {
       completed++
     }
 
@@ -118,6 +114,10 @@ export default function ProfilePage() {
     }
   }
 
+  const handleViewProfile = () => {
+    router.push("/profile/view")
+  }
+
   if (loading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
@@ -127,23 +127,44 @@ export default function ProfilePage() {
     )
   }
 
+  // Check if profile is complete - all required sections are filled
+  const isProfileComplete =
+    profile?.name &&
+    profile?.title &&
+    profile?.gender &&
+    profile?.education_level &&
+    profile?.experience &&
+    profile?.skills?.length > 0 &&
+    profile?.interests?.length > 0 &&
+    profile?.education?.length > 0
+
   return (
     <div className="container mx-auto py-6">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Profile Completion</CardTitle>
-          <CardDescription>Complete your profile to get personalized career recommendations</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium">{completionPercentage}% Complete</span>
-            <span className="text-sm text-muted-foreground">
-              {completionPercentage === 100 ? "All sections completed!" : "Complete all sections"}
-            </span>
-          </div>
-          <Progress value={completionPercentage} className="h-2" />
-        </CardContent>
-      </Card>
+      {/* Only show progress card if not on complete tab or if profile is not complete */}
+      {(activeTab !== "complete" || !isProfileComplete) && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Profile Completion</CardTitle>
+            <CardDescription>Complete your profile to get personalized career recommendations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-medium">{completionPercentage}% Complete</span>
+              <span className="text-sm text-muted-foreground">
+                {completionPercentage === 100 ? (
+                  <span className="flex items-center text-green-600">
+                    <CheckCircle2 className="mr-1 h-4 w-4" />
+                    All sections completed!
+                  </span>
+                ) : (
+                  "Complete all sections"
+                )}
+              </span>
+            </div>
+            <Progress value={completionPercentage} className="h-2" />
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
@@ -176,29 +197,56 @@ export default function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="complete">
-          <CompleteProfile profile={profile} />
+          {isProfileComplete ? (
+            <div className="space-y-6">
+              <CompleteProfile profile={profile} />
+              <div className="flex justify-center">
+                <Button onClick={handleViewProfile} size="lg" className="px-8">
+                  View Full Profile
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Complete Your Profile</CardTitle>
+                <CardDescription>
+                  Please complete all previous sections before viewing your complete profile.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Progress value={completionPercentage} className="h-2 mb-4" />
+                <p className="text-muted-foreground">
+                  You have completed {completionPercentage}% of your profile. Continue filling out the remaining
+                  sections to unlock your complete profile view.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
-      <div className="mt-6 flex justify-between">
-        <Button
-          variant="outline"
-          onClick={() => {
-            const tabs = ["header", "personal", "skills", "interests", "education", "complete"]
-            const currentIndex = tabs.indexOf(activeTab)
-            if (currentIndex > 0) {
-              setActiveTab(tabs[currentIndex - 1])
-            }
-          }}
-          disabled={activeTab === "header"}
-        >
-          Previous
-        </Button>
-        <Button onClick={handleNextTab} disabled={activeTab === "complete"}>
-          Next
-        </Button>
-      </div>
+      {/* Only show navigation buttons if not on complete tab with complete profile */}
+      {!(activeTab === "complete" && isProfileComplete) && (
+        <div className="mt-6 flex justify-between">
+          <Button
+            variant="outline"
+            onClick={() => {
+              const tabs = ["header", "personal", "skills", "interests", "education", "complete"]
+              const currentIndex = tabs.indexOf(activeTab)
+              if (currentIndex > 0) {
+                setActiveTab(tabs[currentIndex - 1])
+              }
+            }}
+            disabled={activeTab === "header"}
+          >
+            Previous
+          </Button>
+          <Button onClick={handleNextTab} disabled={activeTab === "complete"}>
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
-

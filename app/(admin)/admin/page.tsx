@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 const Admin = async () => {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser() as { username: string } | null;
 
   if (!user) {
     redirect("/sign-in");

@@ -34,10 +34,10 @@ export const MobileMenu = ({
         ))}
         <div className="my-2 h-px w-full bg-border" />
         <NavItem
-          href="/profile"
+          href="/profile/view"
           icon={User}
           isMobile
-          isActive={isActive("/profile")}
+          isActive={isActive("/profile/view")}
           onClick={onClose}
         >
           Profile

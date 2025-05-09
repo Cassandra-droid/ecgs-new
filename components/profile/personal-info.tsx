@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { updatePersonalInfo } from "@/lib/profile"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, CheckCircle2 } from "lucide-react"
 
 interface PersonalInfoProps {
   profile: any
@@ -19,21 +19,42 @@ interface PersonalInfoProps {
 
 export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [formData, setFormData] = useState({
-    name: profile?.name || "",
-    email: profile?.email || "",
-    title: profile?.title || "",
-    bio: profile?.bio || "",
-    gender: profile?.gender || "",
-    age: profile?.age || "",
-    educationLevel: profile?.education_level || "",
-    experience: profile?.experience || "",
-    careerPreferences: profile?.career_preferences || "",
-    location: profile?.location || "",
-    phone: profile?.phone || "",
-    website: profile?.website || "",
+    name: "",
+    email: "",
+    title: "",
+    bio: "",
+    gender: "",
+    age: "",
+    educationLevel: "",
+    experience: "",
+    careerPreferences: "",
+    location: "",
+    phone: "",
+    website: "",
   })
   const { toast } = useToast()
+
+  // Initialize form data from profile when it loads
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        name: profile.name || "",
+        email: profile.email || "",
+        title: profile.title || "",
+        bio: profile.bio || "",
+        gender: profile.gender || "",
+        age: profile.age || "",
+        educationLevel: profile.education_level || "",
+        experience: profile.experience || "",
+        careerPreferences: profile.career_preferences || "",
+        location: profile.location || "",
+        phone: profile.phone || "",
+        website: profile.website || "",
+      })
+    }
+  }, [profile])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -46,6 +67,7 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSuccess(false)
 
     if (!formData.gender || !formData.educationLevel || !formData.experience) {
       toast({
@@ -58,12 +80,22 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
 
     try {
       setLoading(true)
+
+      // Log the data being sent for debugging
+      console.log("Sending personal info data:", formData)
+
       await updatePersonalInfo(formData)
+
+      setSuccess(true)
       toast({
         title: "Personal info updated",
         description: "Your personal information has been updated successfully.",
       })
-      onUpdate()
+
+      // Wait a moment to show the success state before proceeding
+      setTimeout(() => {
+        onUpdate()
+      }, 1000)
     } catch (error) {
       console.error("Error updating personal info:", error)
       toast({
@@ -84,9 +116,39 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {/* Name field - important for profile */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              name="name"
+              placeholder="Your full name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Email field - read-only from user credentials */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              readOnly
+              disabled
+              className="bg-gray-50"
+            />
+            <p className="text-xs text-muted-foreground">Email cannot be changed as it's linked to your account</p>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
+              <Label htmlFor="gender">
+                Gender <span className="text-red-500">*</span>
+              </Label>
               <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select gender" />
@@ -108,7 +170,9 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="educationLevel">Education Level</Label>
+              <Label htmlFor="educationLevel">
+                Education Level <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={formData.educationLevel}
                 onValueChange={(value) => handleSelectChange("educationLevel", value)}
@@ -127,7 +191,9 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="experience">Years of Experience</Label>
+              <Label htmlFor="experience">
+                Years of Experience <span className="text-red-500">*</span>
+              </Label>
               <Select value={formData.experience} onValueChange={(value) => handleSelectChange("experience", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select experience" />
@@ -195,6 +261,11 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
+              </>
+            ) : success ? (
+              <>
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Saved Successfully
               </>
             ) : (
               "Save & Continue"

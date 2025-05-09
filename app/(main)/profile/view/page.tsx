@@ -1,32 +1,42 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Share2, Download, Mail, Phone, Globe, MapPin, Briefcase, GraduationCap, Edit } from "lucide-react"
+import { getUserProfile } from "@/lib/profile"
+import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 
-interface CompleteProfileProps {
-  profile: any
-}
-
-export default function CompleteProfile({ profile }: CompleteProfileProps) {
+export default function ViewProfilePage() {
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
   const router = useRouter()
 
-  if (!profile) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Complete Profile</CardTitle>
-          <CardDescription>
-            Your profile information is not available. Please complete the previous sections.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    )
-  }
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true)
+        const data = await getUserProfile()
+        setProfile(data)
+      } catch (error) {
+        console.error("Error fetching profile:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load profile data. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [toast])
 
   const getInitials = (name: string) => {
     if (!name) return "U"
@@ -71,13 +81,37 @@ export default function CompleteProfile({ profile }: CompleteProfileProps) {
   }
 
   const handleEditProfile = () => {
-    router.push("/profile/edit")
+    router.push("/profile")
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Not Found</CardTitle>
+          <CardDescription>
+            Your profile information is not available. Please complete your profile first.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => router.push("/profile")}>Go to Profile</Button>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
     <div className="container mx-auto max-w-4xl space-y-6 py-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Profile Complete</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">My Profile</h1>
         <Button onClick={handleEditProfile} variant="outline" className="flex items-center gap-2">
           <Edit className="h-4 w-4" />
           Edit Profile
@@ -85,11 +119,7 @@ export default function CompleteProfile({ profile }: CompleteProfileProps) {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Complete Profile</CardTitle>
-          <CardDescription>Your profile is 100% complete. Here's how it looks.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex flex-col items-center space-y-4 md:flex-row md:space-x-6 md:space-y-0">
             <Avatar className="h-24 w-24">
               <AvatarImage src="/placeholder.svg?height=96&width=96" alt={profile.name} />

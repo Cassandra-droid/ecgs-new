@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { updateEducation } from "@/lib/profile"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Plus, Trash2 } from "lucide-react"
+import { Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react"
 
 interface EducationSectionProps {
   education: any[]
@@ -19,6 +19,7 @@ interface EducationSectionProps {
 
 export default function EducationSection({ education, onUpdate }: EducationSectionProps) {
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [educationEntries, setEducationEntries] = useState<any[]>(education || [])
   const { toast } = useToast()
 
@@ -46,6 +47,7 @@ export default function EducationSection({ education, onUpdate }: EducationSecti
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSuccess(false)
 
     // Validate education entries
     const invalidEntries = educationEntries.filter((entry) => !entry.institution || !entry.degree || !entry.year)
@@ -71,11 +73,17 @@ export default function EducationSection({ education, onUpdate }: EducationSecti
     try {
       setLoading(true)
       await updateEducation("current", educationEntries)
+
+      setSuccess(true)
       toast({
         title: "Education updated",
         description: "Your education information has been updated successfully.",
       })
-      onUpdate()
+
+      // Wait a moment to show the success state before proceeding
+      setTimeout(() => {
+        onUpdate()
+      }, 1000)
     } catch (error) {
       console.error("Error updating education:", error)
       toast({
@@ -107,22 +115,28 @@ export default function EducationSection({ education, onUpdate }: EducationSecti
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor={`institution-${entry.id}`}>Institution *</Label>
+                  <Label htmlFor={`institution-${entry.id}`}>
+                    Institution <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id={`institution-${entry.id}`}
                     value={entry.institution}
                     onChange={(e) => handleEducationChange(entry.id, "institution", e.target.value)}
                     placeholder="University/College/School name"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`degree-${entry.id}`}>Degree/Certificate *</Label>
+                  <Label htmlFor={`degree-${entry.id}`}>
+                    Degree/Certificate <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id={`degree-${entry.id}`}
                     value={entry.degree}
                     onChange={(e) => handleEducationChange(entry.id, "degree", e.target.value)}
                     placeholder="Bachelor's, Master's, Certificate, etc."
+                    required
                   />
                 </div>
               </div>
@@ -139,12 +153,15 @@ export default function EducationSection({ education, onUpdate }: EducationSecti
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`year-${entry.id}`}>Year Range *</Label>
+                  <Label htmlFor={`year-${entry.id}`}>
+                    Year Range <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id={`year-${entry.id}`}
                     value={entry.year}
                     onChange={(e) => handleEducationChange(entry.id, "year", e.target.value)}
                     placeholder="2018 - 2022"
+                    required
                   />
                 </div>
               </div>
@@ -173,6 +190,11 @@ export default function EducationSection({ education, onUpdate }: EducationSecti
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
+              </>
+            ) : success ? (
+              <>
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Saved Successfully
               </>
             ) : (
               "Save & Continue"

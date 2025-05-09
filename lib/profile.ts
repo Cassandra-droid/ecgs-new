@@ -1,7 +1,49 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { verifyTokenFromCookie } from "@/lib/auth"
+import { cookies } from "next/headers"
+
+// Add debugging to verifyTokenFromCookie
+export async function verifyTokenFromCookie() {
+  try {
+    // Get the token from the cookie
+    const cookieStore = cookies()
+    const token = cookieStore.get("auth_token")?.value
+
+    if (!token) {
+      console.error("No auth_token cookie found")
+      return null
+    }
+
+    console.log("Found token in cookie:", token.substring(0, 10) + "...")
+
+    // Verify the token with the server
+    const res = await fetch("http://localhost:8000/api/verify-token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
+    })
+
+    if (!res.ok) {
+      console.error("Token verification failed:", await res.text())
+      return null
+    }
+
+    const data = await res.json()
+    console.log("Token verification response:", data)
+
+    if (data.valid) {
+      return token
+    }
+
+    return null
+  } catch (error) {
+    console.error("Error verifying token:", error)
+    return null
+  }
+}
 
 // Default profile setup
 const defaultEmptyProfile = {
@@ -9,9 +51,9 @@ const defaultEmptyProfile = {
   bio: "",
   gender: "",
   age: null,
-  educationLevel: "",
+  education_level: "",
   experience: "",
-  careerPreferences: "",
+  career_preferences: "",
   location: "",
   phone: "",
   website: "",
@@ -65,7 +107,7 @@ export async function getUserProfile() {
 }
 
 // Update profile header only (name + email)
-export async function updateProfileHeader(data: { name: string; email: string }) {
+export async function updateProfileHeader(data: { name: string; email?: string; title?: string; bio?: string }) {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
@@ -79,7 +121,12 @@ export async function updateProfileHeader(data: { name: string; email: string })
       body: JSON.stringify(data),
     })
 
-    if (!res.ok) throw new Error("Failed to update profile header")
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error("Failed to update profile header:", errorText)
+      throw new Error("Failed to update profile header")
+    }
+
     const result = await res.json()
     revalidatePath("/profile")
     return result
@@ -92,9 +139,9 @@ export async function updateProfileHeader(data: { name: string; email: string })
 // Update personal information
 export async function updatePersonalInfo(data: {
   name: string
-  email: string
-  title: string
-  bio: string
+  email?: string
+  title?: string
+  bio?: string
   gender: string
   age?: number | string
   educationLevel: string
@@ -107,6 +154,23 @@ export async function updatePersonalInfo(data: {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
+  // Map frontend field names to backend field names
+  const mappedData = {
+    name: data.name,
+    title: data.title || "",
+    bio: data.bio || "",
+    gender: data.gender,
+    age: data.age,
+    education_level: data.educationLevel,
+    experience: data.experience,
+    career_preferences: data.careerPreferences,
+    location: data.location,
+    phone: data.phone,
+    website: data.website,
+  }
+
+  console.log("Mapped personal info data:", mappedData)
+
   try {
     const res = await fetch("http://localhost:8000/api/personal-info/", {
       method: "PATCH",
@@ -115,11 +179,12 @@ export async function updatePersonalInfo(data: {
         Authorization: `Bearer ${token}`,
       },
       credentials: "include",
-      body: JSON.stringify(data),
+      body: JSON.stringify(mappedData),
     })
 
     if (!res.ok) {
-      console.error("Failed to update profile:", await res.text())
+      const errorText = await res.text()
+      console.error("Failed to update profile:", errorText)
       throw new Error("Failed to update profile")
     }
 
@@ -132,12 +197,20 @@ export async function updatePersonalInfo(data: {
   }
 }
 
-// Update skills (no proficiency)
+// Update skills to match ProfileSkill model
 export async function updateUserSkills(skills: string[]) {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
   try {
+    // Format skills as objects with name property to match ProfileSkill model
+    const formattedSkills = skills.map((skill) => ({
+      name: skill,
+      level: "Intermediate", // Default level
+    }))
+
+    console.log("Sending skills data:", JSON.stringify({ skills: formattedSkills }))
+
     const response = await fetch("http://localhost:8000/api/skills/", {
       method: "PUT",
       headers: {
@@ -145,10 +218,15 @@ export async function updateUserSkills(skills: string[]) {
         Authorization: `Bearer ${token}`,
       },
       credentials: "include",
-      body: JSON.stringify({ skills }),
+      body: JSON.stringify({ skills: formattedSkills }),
     })
 
-    if (!response.ok) throw new Error("Failed to update skills")
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Failed to update skills:", errorText)
+      throw new Error("Failed to update skills")
+    }
+
     const result = await response.json()
     revalidatePath("/profile")
     return result
@@ -158,16 +236,19 @@ export async function updateUserSkills(skills: string[]) {
   }
 }
 
-// Update interests
+// Update interests to match Interest model
 export async function updateUserInterests(interests: string[]) {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
   try {
+    // Format interests as objects with name and category properties
     const formattedInterests = interests.map((interest) => ({
       name: interest,
-      category: "Personal",
+      category: "Personal", // Default category
     }))
+
+    console.log("Sending interests data:", JSON.stringify({ interests: formattedInterests }))
 
     const response = await fetch("http://localhost:8000/api/interests/", {
       method: "PUT",
@@ -179,7 +260,12 @@ export async function updateUserInterests(interests: string[]) {
       body: JSON.stringify({ interests: formattedInterests }),
     })
 
-    if (!response.ok) throw new Error("Failed to update interests")
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Failed to update interests:", errorText)
+      throw new Error("Failed to update interests")
+    }
+
     const result = await response.json()
     revalidatePath("/profile")
     return result
@@ -189,15 +275,17 @@ export async function updateUserInterests(interests: string[]) {
   }
 }
 
-// Update education
+// Update education to match Education model
 export async function updateEducation(
   userId: string,
-  educationEntries: { institution: string; degree: string; year: string }[],
+  educationEntries: { institution: string; degree: string; field?: string; year: string; description?: string }[],
 ) {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
   try {
+    console.log("Sending education data:", JSON.stringify({ education: educationEntries }))
+
     const response = await fetch("http://localhost:8000/api/education/", {
       method: "PUT",
       headers: {
@@ -208,7 +296,12 @@ export async function updateEducation(
       body: JSON.stringify({ education: educationEntries }),
     })
 
-    if (!response.ok) throw new Error("Failed to update education")
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Failed to update education:", errorText)
+      throw new Error("Failed to update education")
+    }
+
     const result = await response.json()
     revalidatePath("/profile")
     return result
