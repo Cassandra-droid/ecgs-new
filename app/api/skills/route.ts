@@ -11,24 +11,18 @@ export async function GET() {
   const client = await pool.connect()
 
   try {
-    // Query to fetch all careers from the database
-    // This assumes you have a careers table with JSON/JSONB columns for requiredSkills and keywords
+    // Query to fetch all skills from the database
     const result = await client.query(`
-      SELECT 
-        id, 
-        career, 
-        category, 
-        required_skills AS "requiredSkills", 
-        keywords
-      FROM careers
-      ORDER BY category, career
+      SELECT id, name, type 
+      FROM skills 
+      ORDER BY type, name
     `)
 
-    // Return the careers as JSON
+    // Return the skills as JSON
     return NextResponse.json(result.rows)
   } catch (error) {
-    console.error("Error in careers API route:", error)
-    return NextResponse.json({ error: "Failed to fetch careers" }, { status: 500 })
+    console.error("Error in skills API route:", error)
+    return NextResponse.json({ error: "Failed to fetch skills" }, { status: 500 })
   } finally {
     // Release the client back to the pool
     client.release()
