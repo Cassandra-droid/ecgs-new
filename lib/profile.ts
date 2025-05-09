@@ -70,7 +70,7 @@ export async function updateProfileHeader(data: { name: string; email: string })
   if (!token) throw new Error("Invalid or missing token")
 
   try {
-    const res = await fetch("http://localhost:8000/header/", {
+    const res = await fetch("http://localhost:8000/api/header/", {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
