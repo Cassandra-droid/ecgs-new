@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { verifyTokenFromCookie } from "@/lib/auth" // Adjust path as needed
-
+ // Adjust this import path if needed
+import { verifyTokenFromCookie } from "@/lib/auth"
 export async function POST(req: NextRequest) {
   try {
+    // Verify token from Authorization header
     const token = await verifyTokenFromCookie()
 
     if (!token) {
@@ -11,23 +12,24 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
 
-    const response = await fetch("http://127.0.0.1:8000/api/predict/", {
+    // Send request to Django backend
+    const response = await fetch("http://127.0.0.1:8000/api/save/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Authorization": `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     })
 
     if (!response.ok) {
-      throw new Error("Prediction request failed")
+      throw new Error(`API error: ${response.status}`)
     }
 
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error in predict-careers route:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error saving career prediction:", error)
+    return NextResponse.json({ error: "Failed to save career prediction" }, { status: 500 })
   }
 }
