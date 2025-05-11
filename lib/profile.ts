@@ -2,51 +2,78 @@
 
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
+import axios from "axios"
 
-// Add debugging to verifyTokenFromCookie
-export async function verifyTokenFromCookie() {
-  try {
-    // Get the token from the cookie
-    const cookieStore = cookies()
-    const token = cookieStore.get("auth_token")?.value
+// Create API instance
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+})
 
-    if (!token) {
-      console.error("No auth_token cookie found")
-      return null
-    }
+// API response interface
+export interface ApiResponse {
+  success: boolean
+  message: string
+}
 
-    console.log("Found token in cookie:", token.substring(0, 10) + "...")
+// Profile interfaces
+export interface UserProfile {
+  title: string
+  bio: string
+  gender: string
+  age: number | null
+  education_level: string
+  experience: string
+  career_preferences: string
+  location: string
+  phone: string
+  website: string
+  skills: ProfileSkill[]
+  education: Education[]
+  interests: Interest[]
+}
 
-    // Verify the token with the server
-    const res = await fetch("http://localhost:8000/api/verify-token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token }),
-    })
+export interface ProfileSkill {
+  name: string
+  level: string
+}
 
-    if (!res.ok) {
-      console.error("Token verification failed:", await res.text())
-      return null
-    }
+export interface Interest {
+  name: string
+  category: string
+}
 
-    const data = await res.json()
-    console.log("Token verification response:", data)
+export interface Education {
+  institution: string
+  degree: string
+  field?: string
+  year: string
+  description?: string
+}
 
-    if (data.valid) {
-      return token
-    }
+export interface ProfileHeader {
+  name: string
+  email?: string
+  title?: string
+  bio?: string
+}
 
-    return null
-  } catch (error) {
-    console.error("Error verifying token:", error)
-    return null
-  }
+export interface PersonalInfo {
+  name: string
+  email?: string
+  title?: string
+  bio?: string
+  gender: string
+  age?: number | string
+  education_level: string
+  experience: string
+  career_preferences: string
+  location: string
+  phone: string
+  website: string
 }
 
 // Default profile setup
-const defaultEmptyProfile = {
+const defaultEmptyProfile: UserProfile = {
   title: "",
   bio: "",
   gender: "",
@@ -62,95 +89,114 @@ const defaultEmptyProfile = {
   interests: [],
 }
 
-// Ensure user profile
-export async function ensureUserProfile(token: string) {
+// Add debugging to verifyTokenFromCookie
+export async function verifyTokenFromCookie() {
   try {
-    const res = await fetch("http://localhost:8000/api/ensure-profile/", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
+    // Get the token from the cookie
+    const cookieStore = cookies()
+    const token = cookieStore.get("auth_token")?.value
 
-    if (!res.ok) throw new Error("Failed to ensure user profile")
-    const data = await res.json()
-    return data.profile_id
+    if (!token) {
+      console.error("No auth_token cookie found")
+      return null
+    }
+
+    console.log("Found token in cookie:", token.substring(0, 10) + "...")
+
+    try {
+      const response = await api.post<{ valid: boolean }>("/api/verify-token", { token })
+      console.log("Token verification response:", response.data)
+
+      if (response.data.valid) {
+        return token
+      }
+      return null
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Token verification failed:", error.response.data)
+      } else {
+        console.error("Error verifying token:", error)
+      }
+      return null
+    }
   } catch (error) {
-    console.error("Error ensuring profile:", error)
+    console.error("Error verifying token:", error)
+    return null
+  }
+}
+
+// Ensure user profile
+export async function ensureUserProfile(token: string): Promise<string> {
+  try {
+    const response = await api.post<{ profile_id: string }>(
+      "/api/ensure-profile/",
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    )
+    return response.data.profile_id
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Failed to ensure user profile:", error.response.data)
+    } else {
+      console.error("Error ensuring profile:", error)
+    }
     throw error
   }
 }
 
 // Get user profile
-export async function getUserProfile() {
+export async function getUserProfile(): Promise<UserProfile> {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
   try {
-    const res = await fetch("http://localhost:8000/api/profile/", {
-      method: "GET",
+    const response = await api.get<UserProfile>("/api/profile/", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      credentials: "include",
     })
-
-    if (!res.ok) throw new Error("Failed to fetch user profile")
-    const profile = await res.json()
     revalidatePath("/profile")
-    return profile
+    return response.data
   } catch (error) {
-    console.error("Error fetching profile:", error)
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Failed to fetch user profile:", error.response.data)
+    } else {
+      console.error("Error fetching profile:", error)
+    }
     throw error
   }
 }
 
 // Update profile header only (name + email)
-export async function updateProfileHeader(data: { name: string; email?: string; title?: string; bio?: string }) {
+export async function updateProfileHeader(data: ProfileHeader): Promise<ApiResponse> {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
   try {
-    const res = await fetch("http://localhost:8000/api/header/", {
-      method: "PATCH",
+    const response = await api.patch<ApiResponse>("/api/header/", data, {
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
     })
-
-    if (!res.ok) {
-      const errorText = await res.text()
-      console.error("Failed to update profile header:", errorText)
-      throw new Error("Failed to update profile header")
-    }
-
-    const result = await res.json()
     revalidatePath("/profile")
-    return result
+    return response.data
   } catch (error) {
-    console.error("Error updating profile header:", error)
-    throw error
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Failed to update profile header:", error.response.data)
+      return { success: false, message: error.response.data.message || "Failed to update profile header" }
+    } else {
+      console.error("Error updating profile header:", error)
+      return { success: false, message: "Failed to update profile header" }
+    }
   }
 }
 
 // Update personal information
-export async function updatePersonalInfo(data: {
-  name: string
-  email?: string
-  title?: string
-  bio?: string
-  gender: string
-  age?: number | string
-  educationLevel: string
-  experience: string
-  careerPreferences: string
-  location: string
-  phone: string
-  website: string
-}) {
+export async function updatePersonalInfo(data: PersonalInfo): Promise<ApiResponse> {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
@@ -161,9 +207,9 @@ export async function updatePersonalInfo(data: {
     bio: data.bio || "",
     gender: data.gender,
     age: data.age,
-    education_level: data.educationLevel,
+    education_level: data.education_level,
     experience: data.experience,
-    career_preferences: data.careerPreferences,
+    career_preferences: data.career_preferences,
     location: data.location,
     phone: data.phone,
     website: data.website,
@@ -172,33 +218,26 @@ export async function updatePersonalInfo(data: {
   console.log("Mapped personal info data:", mappedData)
 
   try {
-    const res = await fetch("http://localhost:8000/api/personal-info/", {
-      method: "PATCH",
+    const response = await api.patch<ApiResponse>("/api/personal-info/", mappedData, {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      credentials: "include",
-      body: JSON.stringify(mappedData),
     })
-
-    if (!res.ok) {
-      const errorText = await res.text()
-      console.error("Failed to update profile:", errorText)
-      throw new Error("Failed to update profile")
-    }
-
-    const result = await res.json()
     revalidatePath("/profile")
-    return result
+    return response.data
   } catch (error) {
-    console.error("Error updating personal info:", error)
-    throw error
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Failed to update profile:", error.response.data)
+      return { success: false, message: error.response.data.message || "Failed to update profile" }
+    } else {
+      console.error("Error updating personal info:", error)
+      return { success: false, message: "Failed to update profile" }
+    }
   }
 }
 
 // Update skills to match ProfileSkill model
-export async function updateUserSkills(skills: string[]) {
+export async function updateUserSkills(skills: string[]): Promise<ApiResponse> {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
@@ -211,33 +250,31 @@ export async function updateUserSkills(skills: string[]) {
 
     console.log("Sending skills data:", JSON.stringify({ skills: formattedSkills }))
 
-    const response = await fetch("http://localhost:8000/api/skills/", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const response = await api.put<ApiResponse>(
+      "/api/skills/",
+      { skills: formattedSkills },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-      credentials: "include",
-      body: JSON.stringify({ skills: formattedSkills }),
-    })
+    )
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Failed to update skills:", errorText)
-      throw new Error("Failed to update skills")
-    }
-
-    const result = await response.json()
     revalidatePath("/profile")
-    return result
+    return response.data
   } catch (error) {
-    console.error("Error updating skills:", error)
-    throw error
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Failed to update skills:", error.response.data)
+      return { success: false, message: error.response.data.message || "Failed to update skills" }
+    } else {
+      console.error("Error updating skills:", error)
+      return { success: false, message: "Failed to update skills" }
+    }
   }
 }
 
 // Update interests to match Interest model
-export async function updateUserInterests(interests: string[]) {
+export async function updateUserInterests(interests: string[]): Promise<ApiResponse> {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
@@ -250,80 +287,78 @@ export async function updateUserInterests(interests: string[]) {
 
     console.log("Sending interests data:", JSON.stringify({ interests: formattedInterests }))
 
-    const response = await fetch("http://localhost:8000/api/interests/", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const response = await api.put<ApiResponse>(
+      "/api/interests/",
+      { interests: formattedInterests },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-      credentials: "include",
-      body: JSON.stringify({ interests: formattedInterests }),
-    })
+    )
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Failed to update interests:", errorText)
-      throw new Error("Failed to update interests")
-    }
-
-    const result = await response.json()
     revalidatePath("/profile")
-    return result
+    return response.data
   } catch (error) {
-    console.error("Error updating interests:", error)
-    throw error
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Failed to update interests:", error.response.data)
+      return { success: false, message: error.response.data.message || "Failed to update interests" }
+    } else {
+      console.error("Error updating interests:", error)
+      return { success: false, message: "Failed to update interests" }
+    }
   }
 }
 
 // Update education to match Education model
-export async function updateEducation(
-  userId: string,
-  educationEntries: { institution: string; degree: string; field?: string; year: string; description?: string }[],
-) {
+export async function updateEducation(userId: string, educationEntries: Education[]): Promise<ApiResponse> {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
   try {
     console.log("Sending education data:", JSON.stringify({ education: educationEntries }))
 
-    const response = await fetch("http://localhost:8000/api/education/", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const response = await api.put<ApiResponse>(
+      "/api/education/",
+      { education: educationEntries },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-      credentials: "include",
-      body: JSON.stringify({ education: educationEntries }),
-    })
+    )
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Failed to update education:", errorText)
-      throw new Error("Failed to update education")
-    }
-
-    const result = await response.json()
     revalidatePath("/profile")
-    return result
+    return response.data
   } catch (error) {
-    console.error("Error updating education:", error)
-    throw error
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Failed to update education:", error.response.data)
+      return { success: false, message: error.response.data.message || "Failed to update education" }
+    } else {
+      console.error("Error updating education:", error)
+      return { success: false, message: "Failed to update education" }
+    }
   }
 }
 
 // Get education data
-export async function getEducation() {
+export async function getEducation(): Promise<Education[]> {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
-  const res = await fetch("http://localhost:8000/api/education/", {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    credentials: "include",
-  })
-
-  if (!res.ok) throw new Error("Failed to fetch education")
-  return await res.json()
+  try {
+    const response = await api.get<Education[]>("/api/education/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Failed to fetch education:", error.response.data)
+    } else {
+      console.error("Error fetching education:", error)
+    }
+    throw error
+  }
 }
