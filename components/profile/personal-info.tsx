@@ -141,7 +141,7 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
               disabled
               className="bg-gray-50"
             />
-            <p className="text-xs text-muted-foreground">Email cannot be changed as it's linked to your account</p>
+            <p className="text-xs text-muted-foreground">Email cannot be changed as it linked to your account</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -181,11 +181,12 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
                   <SelectValue placeholder="Select education level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high-school">High School</SelectItem>
-                  <SelectItem value="associate">Associate Degree</SelectItem>
-                  <SelectItem value="bachelor">Bachelor's Degree</SelectItem>
-                  <SelectItem value="master">Master's Degree</SelectItem>
-                  <SelectItem value="doctorate">Doctorate</SelectItem>
+                  <SelectItem value="ucecertificate">UCE Certificate</SelectItem>
+                  <SelectItem value="uacecertificate">UACE Certificate</SelectItem>
+                  <SelectItem value="bachelor's">Bachelor Degree</SelectItem>
+                  <SelectItem value="master's">Master Degree</SelectItem>
+                  <SelectItem value="phd">PhD</SelectItem>
+                  <SelectItem value="diploma's">Diploma</SelectItem>
                 </SelectContent>
               </Select>
             </div>
