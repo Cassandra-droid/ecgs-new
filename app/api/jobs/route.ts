@@ -1,28 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifyTokenFromCookie } from "@/lib/auth"; // adjust the path if needed
+import { type NextRequest, NextResponse } from "next/server"
+import { api, getAuthToken } from "@/lib/api"
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { careerTitle: string } }) {
   try {
-    const token = await verifyTokenFromCookie();
+    const token = await getAuthToken()
 
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const response = await fetch("http://127.0.0.1:8000/api/jobs/", {
+    const careerTitle = params.careerTitle
+
+    if (!careerTitle) {
+      return NextResponse.json({ error: "Career title is required" }, { status: 400 })
+    }
+
+    // Properly encode the career title for the URL
+    const encodedTitle = encodeURIComponent(careerTitle)
+
+    const response = await api.get(`/api/job/${encodedTitle}/`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    })
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch jobs from backend");
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(response.data)
   } catch (error) {
-    console.error("Error in jobs route:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Error fetching job listing:", error)
+    return NextResponse.json({ error: "Failed to fetch job listing" }, { status: 500 })
   }
 }

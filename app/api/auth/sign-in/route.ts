@@ -1,43 +1,43 @@
-// app/api/login/route.ts
 import { NextResponse } from "next/server"
-import pool from "@/lib/db"
-import { verifyPassword, createToken, setAuthCookie } from "@/lib/auth"
+import { api } from "@/lib/api"
+import { cookies } from "next/headers"
+import axios from "axios"
 
 export async function POST(request: Request) {
   try {
     const { email, password, callbackUrl } = await request.json()
 
-    const client = await pool.connect()
+    const response = await api.post("/api/auth/login/", {
+      email,
+      password,
+    })
 
-    const { rows } = await client.query(
-      `SELECT id, email, password, role FROM users WHERE email = $1`,
-      [email]
-    )
+    // Set the auth token in cookies
+    const token = response.data.token
+    cookies().set({
+      name: "auth_token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      path: "/",
+    })
 
-    client.release()
-
-    const user = rows[0]
-
-    if (!user || !user.password) {
-      return new NextResponse("Invalid credentials", { status: 400 })
-    }
-
-    const isValid = await verifyPassword(password, user.password)
-
-    if (!isValid) {
-      return new NextResponse("Invalid credentials", { status: 400 })
-    }
-
-    const token = await createToken({ id: user.id, role: user.role })
-    setAuthCookie(token)
-
-    const redirectUrl = user.role === "Admin" ? "/admin" : "/dashboard"
+    // Determine redirect URL based on user role
+    const role = response.data.user?.role
+    const redirectUrl = role === "Admin" ? "/admin" : "/dashboard"
     const finalCallbackUrl = callbackUrl && callbackUrl !== "" ? callbackUrl : redirectUrl
 
     return NextResponse.json({ callbackUrl: finalCallbackUrl })
   } catch (error) {
     console.error("Login error:", error)
-    return new NextResponse("Server error", { status: 500 })
+
+    if (axios.isAxiosError(error) && error.response?.status === 400) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 400 })
+    }
+
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }
-
+// This code defines a POST API route for handling user login.

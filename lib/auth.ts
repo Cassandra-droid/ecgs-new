@@ -1,50 +1,83 @@
-// Create this file if it doesn't exist
-'use server'
-
 import { cookies } from "next/headers"
-import { jwtVerify } from "jose"
+import { redirect } from "next/navigation"
+import { api } from "./api"
+import { cache } from "react"
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "oGqOHOxYPRP28PEsygbtQ3OLYljcrHh3MxwqpFiStt8k")
-
-export async function getCurrentUser() {
-  const cookieStore = cookies()
-  const token = cookieStore.get("auth_token")?.value
-
-  if (!token) {
+// Get the auth token from cookies
+export async function getAuthToken() {
+  try {
+    const cookieStore = cookies()
+    return cookieStore.get("auth_token")?.value
+  } catch (error) {
+    console.error("Error getting auth token from cookies:", error)
     return null
   }
+}
+
+// Verify the token from cookies
+export async function verifyTokenFromCookie() {
+  const token = await getAuthToken()
+  if (!token) return null
 
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET)
-    return payload
+    await api.post("/api/verify-token", { token })
+    return token
   } catch (error) {
     console.error("Error verifying token:", error)
     return null
   }
 }
 
-
-
-export async function verifyTokenFromCookie(): Promise<string | null> {
-  const token = cookies().get("auth_token")?.value
-
-  if (!token) return null
-
+// Get the current user session
+export const getServerSession = cache(async () => {
   try {
-    const res = await fetch("http://localhost:8000/api/verify-token", {
-      method: "POST",
+    const token = await getAuthToken()
+    if (!token) return null
+
+    const response = await api.get("/api/user", {
       headers: {
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ token }),
     })
 
-    if (!res.ok) return null
-
-    const data = await res.json()
-    return data?.valid ? token : null
+    return response.data
   } catch (error) {
-    console.error("Token verification failed:", error)
+    console.error("Error getting server session:", error)
     return null
   }
+})
+
+// Get the current user
+export const getCurrentUser = cache(async () => {
+  try {
+    const session = await getServerSession()
+    return session
+  } catch (error) {
+    console.error("Error getting current user:", error)
+    return null
+  }
+})
+
+// Set auth cookie
+export function setAuthCookie(token: string) {
+  cookies().set({
+    name: "auth_token",
+    value: token,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7, // 1 week
+    path: "/",
+  })
+}
+
+// Verify session and redirect if not authenticated
+export async function verifySession() {
+  const session = await getServerSession()
+
+  if (!session?.id) {
+    redirect("/sign-in")
+  }
+
+  return { isAuth: true, userId: session.id }
 }

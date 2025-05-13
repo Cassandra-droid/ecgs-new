@@ -1,26 +1,21 @@
 import { NextResponse } from "next/server"
-import { verifyTokenFromCookie } from "@/lib/auth" // adjust the path based on your project structure
+import { api, getAuthToken } from "@/lib/api"
 
 export async function GET() {
   try {
-    const token = await verifyTokenFromCookie()
+    const token = await getAuthToken()
+
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const response = await fetch("http://127.0.0.1:8000/api/skill-assessment-results", {
+    const response = await api.get("/api/skill-assessment-results", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
 
-    if (!response.ok) {
-      return NextResponse.json({ error: "Failed to fetch from backend" }, { status: response.status })
-    }
-
-    const data = await response.json()
-
-    return NextResponse.json(data)
+    return NextResponse.json(response.data)
   } catch (error) {
     console.error("Error in assessment-results API route:", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })

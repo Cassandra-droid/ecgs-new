@@ -1,196 +1,187 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import axios from "axios"
-import { Download, Users, BarChart3, TrendingUp, Activity } from "lucide-react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Progress } from "@/components/ui/progress"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import type { UserRegistrationSchemaType } from "@/types"
+import { userRegistrationSchema } from "@/validation/schemas"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { EyeIcon, EyeOff } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { ImSpinner2 } from "react-icons/im"
+import { authApi } from "@/lib/api-client-browser"
 
-interface DashboardData {
-  total_predictions: number
-  average_confidence: number
-  user_event_counts: { event_type: string; count: number }[]
-}
-
-interface EngagementData {
-  daily_active_users: number
-  weekly_active_users: number
-}
-
-export default function AdminDashboard() {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-  const [engagementData, setEngagementData] = useState<EngagementData | null>(null)
-  const [loading, setLoading] = useState(true)
+const SignUpForm = () => {
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const message = "You can now proceed to login"
 
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
+  const form = useForm<UserRegistrationSchemaType>({
+    resolver: zodResolver(userRegistrationSchema),
+  })
 
-  const fetchDashboardData = async () => {
+  const router = useRouter()
+
+  const onSubmit = async (values: UserRegistrationSchemaType) => {
+    setError("")
     try {
-      const [dashboardRes, engagementRes] = await Promise.all([
-        axios.get("http://localhost:8000/api/dashboard_summary/"),
-        axios.get("http://localhost:8000/api/user_engagement_summary/"),
-      ])
-      setDashboardData(dashboardRes.data)
-      setEngagementData(engagementRes.data)
-      setLoading(false)
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-      setError("Failed to load dashboard data. Please try again later.")
-      setLoading(false)
+      await authApi.register({
+        username: values.username,
+        email: values.email,
+        password: values.password,
+      })
+      router.push(`/sign-in?message=Signup successful!`)
+    } catch (error: any) {
+      if (error.response?.data) {
+        const err = error.response.data
+        if (typeof err === "string") {
+          setError(err)
+        } else if (typeof err === "object") {
+          const combined = Object.values(err).flat().join(" ")
+          setError(combined)
+        }
+      } else {
+        setError("Something went wrong")
+      }
     }
   }
 
-  const handleDownloadReport = () => {
-    window.open("http://localhost:8000/api/export_prediction_report/", "_blank")
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-red-500">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{error}</p>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={fetchDashboardData}>Retry</Button>
-          </CardFooter>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <Button onClick={handleDownloadReport} className="gap-2">
-            <Download className="h-4 w-4" />
-            Download Report
-          </Button>
+    <div>
+      <h1 className="mb-4 text-center text-2xl font-semibold">Create an account</h1>
+      {error && (
+        <div className="my-2">
+          <span className="text-red-500">{error}</span>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Predictions */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Predictions</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <div className="text-3xl font-bold">{dashboardData?.total_predictions ?? 0}</div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Average Confidence */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Average Confidence</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <>
-                  <div className="text-3xl font-bold">
-                    {dashboardData?.average_confidence
-                      ? (dashboardData.average_confidence * 100).toFixed(1) + "%"
-                      : "N/A"}
-                  </div>
-                  {dashboardData?.average_confidence && (
-                    <Progress value={dashboardData.average_confidence * 100} className="h-2 mt-2" />
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Daily Active Users */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Daily Active Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <div className="text-3xl font-bold">{engagementData?.daily_active_users ?? 0}</div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Weekly Active Users */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Weekly Active Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <div className="text-3xl font-bold">{engagementData?.weekly_active_users ?? 0}</div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* User Events */}
-        <Card className="col-span-1 md:col-span-2">
-          <CardHeader>
-            <CardTitle>User Event Counts</CardTitle>
-            <CardDescription>Breakdown of user interactions by event type</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="h-6 w-full" />
-                ))}
-              </div>
-            ) : dashboardData?.user_event_counts?.length ? (
-              <div className="space-y-4">
-                {dashboardData.user_event_counts.map((event, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{event.event_type}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{event.count}</span>
-                      <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary"
-                          style={{
-                            width: `${(event.count / Math.max(...dashboardData.user_event_counts.map((e) => e.count))) * 100}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No event data available</p>
+      )}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Username</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Username"
+                    className="bg-transparent"
+                    disabled={form.formState.isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-          </CardContent>
-        </Card>
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Email Address"
+                    className="bg-transparent"
+                    disabled={form.formState.isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <div
+                      className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeIcon className="h-5 w-5 text-slate-600 dark:text-slate-200" />
+                      ) : (
+                        <EyeOff className="h-5 w-5 text-slate-600 dark:text-slate-200" />
+                      )}
+                    </div>
+                    <Input
+                      {...field}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      className="bg-transparent"
+                      disabled={form.formState.isSubmitting}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <div
+                      className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeIcon className="h-5 w-5 text-slate-600 dark:text-slate-200" />
+                      ) : (
+                        <EyeOff className="h-5 w-5 text-slate-600 dark:text-slate-200" />
+                      )}
+                    </div>
+                    <Input
+                      {...field}
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm Password"
+                      className="bg-transparent"
+                      disabled={form.formState.isSubmitting}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="mt-5">
+            <Button type="submit" className="w-full rounded-lg" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? (
+                <div className="gap-x-2 flex-center-center">
+                  <ImSpinner2 className="animate-spin text-lg" />
+                  <span>Processing...</span>
+                </div>
+              ) : (
+                "Sign Up"
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+      <div className="mt-4 text-center">
+        <span className="text-sm">Already have an account? </span>
+        <Link href="/sign-in" className="text-sm text-brand hover:underline">
+          Sign in
+        </Link>
       </div>
     </div>
   )
 }
 
+export default SignUpForm

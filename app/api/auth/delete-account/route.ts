@@ -1,27 +1,24 @@
-import { getCurrentUser } from "@/lib/auth";
-import { NextResponse } from "next/server";
-import pool from "@/lib/db";
+import { NextResponse } from "next/server"
+import { api, getAuthToken } from "@/lib/api"
 
 export async function DELETE() {
   try {
-    const user = await getCurrentUser();
+    const token = await getAuthToken()
 
-    if (!user) {
-      return new Response("You are not authenticated!", { status: 401 });
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const client = await pool.connect();
+    await api.delete("/api/auth/delete-account/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
-    try {
-      await client.query("DELETE FROM users WHERE id = $1", [user.id]);
-
-      return new NextResponse("Account deleted successfully", { status: 200 });
-    } finally {
-      client.release();
-    }
+    return NextResponse.json({ message: "Account deleted successfully" }, { status: 200 })
   } catch (error) {
-    console.error("Error deleting account:", error);
-    return new NextResponse("Server Error", { status: 500 });
+    console.error("Error deleting account:", error)
+    return NextResponse.json({ error: "Server Error" }, { status: 500 })
   }
 }
-// This code defines a DELETE function that deletes a user's account from the database.
+// This code defines a DELETE API route for deleting a user account.

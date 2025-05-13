@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server"
-import { verifyTokenFromCookie } from "@/lib/auth" // adjust path if needed
+import { type NextRequest, NextResponse } from "next/server"
+import { getAuthToken } from "@/lib/api"
+import {api} from "@/lib/api"
+import axios from "axios"
 
 export async function GET(req: NextRequest, { params }: { params: { careerTitle: string } }) {
   try {
-    const token = await verifyTokenFromCookie()
+    const token = await getAuthToken()
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -15,23 +17,25 @@ export async function GET(req: NextRequest, { params }: { params: { careerTitle:
       return NextResponse.json({ error: "Career title is required" }, { status: 400 })
     }
 
-    // Properly encode the career title for the URL
-    const encodedTitle = encodeURIComponent(careerTitle)
+    try {
+      const response = await api.get(`/api/job/${encodeURIComponent(careerTitle)}/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
-    // Make a request to Django backend with Bearer token
-    const response = await fetch(`http://127.0.0.1:8000/api/job/${encodedTitle}/`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`)
+      return NextResponse.json(response.data)
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          return NextResponse.json(
+            { error: error.response.data.message || "API error" },
+            { status: error.response.status },
+          )
+        }
+      }
+      throw error
     }
-
-    const data = await response.json()
-    return NextResponse.json(data)
   } catch (error) {
     console.error("Error fetching job listing:", error)
     return NextResponse.json({ error: "Failed to fetch job listing" }, { status: 500 })

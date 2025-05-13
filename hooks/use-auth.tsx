@@ -1,14 +1,9 @@
 "use client"
 
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useEffect,
-  type ReactNode,
-} from "react"
-import axios from "axios"
+import type React from "react"
+import { createContext, useState, useContext, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import { api, authApi } from "@/lib/api-client-browser"
 
 interface User {
   id?: string
@@ -41,9 +36,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const checkAuth = async (): Promise<boolean> => {
     try {
-      const response = await axios.get("http://localhost:8000/api/me/", {
-        withCredentials: true,
-      })
+      const response = await authApi.getCurrentUser()
       setUser(response.data)
       return true
     } catch (error) {
@@ -56,20 +49,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      await axios.post(
-        "http://localhost:8000/api/signin/",
-        { email, password },
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        }
-      )
-      const userResponse = await axios.get("http://localhost:8000/api/me/", {
-        withCredentials: true,
-      })
+      await authApi.login(email, password)
+      const userResponse = await authApi.getCurrentUser()
       setUser(userResponse.data)
       return true
     } catch (error) {
@@ -80,7 +61,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = async (): Promise<void> => {
     try {
-      await axios.post("http://localhost:8000/api/logout/", {}, { withCredentials: true })
+      await authApi.logout()
       setUser(null)
       router.push("/sign-in")
     } catch (error) {
@@ -91,9 +72,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const getCSRFToken = async () => {
       try {
-        await axios.get("http://localhost:8000/api/csrf/", {
-          withCredentials: true,
-        })
+        await api.get("/api/csrf/")
         console.log("CSRF cookie set")
       } catch (error) {
         console.error("Failed to fetch CSRF token:", error)

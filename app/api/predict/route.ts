@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server"
-import { verifyTokenFromCookie } from "@/lib/auth" // Adjust path as needed
+import { type NextRequest, NextResponse } from "next/server"
+import { api, getAuthToken } from "@/lib/api"
 
 export async function POST(req: NextRequest) {
   try {
-    const token = await verifyTokenFromCookie()
+    const token = await getAuthToken()
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -11,23 +11,16 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
 
-    const response = await fetch("http://127.0.0.1:8000/api/predict/", {
-      method: "POST",
+    const response = await api.post("/api/predict/", body, {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(body),
     })
 
-    if (!response.ok) {
-      throw new Error("Prediction request failed")
-    }
-
-    const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json(response.data)
   } catch (error) {
     console.error("Error in predict-careers route:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+// This code defines a POST API route for making career predictions.

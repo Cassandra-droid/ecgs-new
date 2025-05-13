@@ -2,8 +2,8 @@
 
 import type React from "react"
 import { createContext, useState, useContext, useEffect, type ReactNode } from "react"
-import axios from "axios"
 import { useRouter } from "next/navigation"
+import { api, authApi } from "@/lib/api-client-browser"
 
 // Define more detailed user interface
 interface User {
@@ -111,22 +111,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       // Sign in user
-      await axios.post(
-        "http://localhost:8000/api/signin/",
-        { email, password },
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        },
-      )
+      await authApi.login(email, password)
 
       // Fetch authenticated user data
-      const res = await axios.get("http://localhost:8000/api/me/", {
-        withCredentials: true,
-      })
+      const res = await authApi.getCurrentUser()
 
       updateAuthState({
         user: res.data,
@@ -159,7 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     })
 
     try {
-      await axios.post("http://localhost:8000/api/logout/", {}, { withCredentials: true })
+      await authApi.logout()
 
       updateAuthState({
         user: null,
@@ -192,9 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     })
 
     try {
-      const response = await axios.get("http://localhost:8000/api/me/", {
-        withCredentials: true,
-      })
+      const response = await authApi.getCurrentUser()
 
       updateAuthState({
         user: response.data,
@@ -226,9 +212,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       })
 
       try {
-        const response = await axios.get("http://localhost:8000/api/me/", {
-          withCredentials: true,
-        })
+        const response = await authApi.getCurrentUser()
 
         updateAuthState({
           user: response.data,
@@ -266,7 +250,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     // Add response interceptor
-    const interceptor = axios.interceptors.response.use(
+    const interceptor = api.interceptors.response.use(
       (response) => response,
       (error) => {
         handleUnauthorized(error)
@@ -276,7 +260,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return () => {
       // Remove interceptor when component unmounts
-      axios.interceptors.response.eject(interceptor)
+      api.interceptors.response.eject(interceptor)
     }
   }, [router])
 

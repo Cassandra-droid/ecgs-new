@@ -1,68 +1,58 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/use-auth";
-import { UserRegistrationSchemaType } from "@/types";
-import { userRegistrationSchema } from "@/validation/schemas";
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
-import { EyeIcon, EyeOff } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { ImSpinner2 } from "react-icons/im";
+import { Button } from "@/components/ui/button"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import type { UserRegistrationSchemaType } from "@/types"
+import { userRegistrationSchema } from "@/validation/schemas"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { EyeIcon, EyeOff } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { ImSpinner2 } from "react-icons/im"
+import { authApi } from "@/lib/api-client-browser"
 
 const SignUpForm = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const message = "You can now proceed to login";
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const message = "You can now proceed to login"
 
   const form = useForm<UserRegistrationSchemaType>({
     resolver: zodResolver(userRegistrationSchema),
-  });
+  })
 
-  const router = useRouter();
+  const router = useRouter()
 
   const onSubmit = async (values: UserRegistrationSchemaType) => {
-    setError("");
+    setError("")
     try {
-      await axios.post("http://localhost:8000/api/signup/", {
+      await authApi.register({
         username: values.username,
         email: values.email,
         password: values.password,
-      });
-      router.push(`/sign-in?message=Signup successful!`);
+      })
+      router.push(`/sign-in?message=Signup successful!`)
     } catch (error: any) {
       if (error.response?.data) {
-        const err = error.response.data;
-        if (typeof err === 'string') {
-          setError(err);
-        } else if (typeof err === 'object') {
-          const combined = Object.values(err).flat().join(" ");
-          setError(combined);
+        const err = error.response.data
+        if (typeof err === "string") {
+          setError(err)
+        } else if (typeof err === "object") {
+          const combined = Object.values(err).flat().join(" ")
+          setError(combined)
         }
       } else {
-        setError("Something went wrong");
+        setError("Something went wrong")
       }
     }
-  };
-  
+  }
+
   return (
     <div>
-      <h1 className="mb-4 text-center text-2xl font-semibold">
-        Create an account
-      </h1>
+      <h1 className="mb-4 text-center text-2xl font-semibold">Create an account</h1>
       {error && (
         <div className="my-2">
           <span className="text-red-500">{error}</span>
@@ -148,9 +138,7 @@ const SignUpForm = () => {
                   <div className="relative">
                     <div
                       className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
                       {showConfirmPassword ? (
                         <EyeIcon className="h-5 w-5 text-slate-600 dark:text-slate-200" />
@@ -173,11 +161,7 @@ const SignUpForm = () => {
           />
 
           <div className="mt-5">
-            <Button
-              type="submit"
-              className="w-full rounded-lg"
-              disabled={form.formState.isSubmitting}
-            >
+            <Button type="submit" className="w-full rounded-lg" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (
                 <div className="gap-x-2 flex-center-center">
                   <ImSpinner2 className="animate-spin text-lg" />
@@ -197,7 +181,7 @@ const SignUpForm = () => {
         </Link>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SignUpForm;
+export default SignUpForm

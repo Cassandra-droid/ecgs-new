@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { api } from "@/lib/api"
+import axios from "axios"
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,24 +11,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No token provided" }, { status: 400 })
     }
 
-    // Forward the token verification request to your backend
-    const response = await fetch("http://localhost:8000/api/verify-token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      return NextResponse.json({ error: errorData.error || "Token verification failed" }, { status: response.status })
-    }
-
-    const data = await response.json()
-    return NextResponse.json(data)
+    const response = await api.post("/api/verify-token", { token })
+    return NextResponse.json(response.data)
   } catch (error) {
     console.error("Error in verify-token API route:", error)
+
+    if (axios.isAxiosError(error) && error.response) {
+      return NextResponse.json(
+        { error: error.response?.data?.error || "Token verification failed" },
+        { status: error.response?.status || 500 },
+      )
+    }
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

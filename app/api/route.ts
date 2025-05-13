@@ -1,9 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
-// Make sure this matches EXACTLY the secret used in your backend
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "oGqOHOxYPRP28PEsygbtQ3OLYljcrHh3MxwqpFiStt8k")
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -14,10 +11,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Set the token in a cookie
-    cookies().set("auth_token", token, {
+    cookies().set({
+      name: "auth_token",
+      value: token,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax", // Changed from strict to lax to allow cross-domain
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
     })
