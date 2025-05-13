@@ -1,5 +1,5 @@
 import DashboardPage from "@/components/dashboard/dashboard-page";
-import { getCurrentUser } from "@/lib/auth-bypass";
+import { getCurrentUser } from "@/lib/auth";
 import React from "react";
 
 const Dashboard = async () => {

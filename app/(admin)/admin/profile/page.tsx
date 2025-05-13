@@ -1,5 +1,4 @@
-import DeleteAccount from "@/components/profile/delete-account";
-import PasswordChangeForm from "@/components/profile/password-change-form";
+
 import ProfileDetails from "@/components/profile/profile-details";
 import ProfileUpdateForm from "@/components/profile/complete-profile";
 import { getCurrentUser } from "@/lib/auth";
@@ -20,11 +19,7 @@ const Profile = async () => {
           user={{ username: user?.username!, email: user?.email!, image: user?.image! }}
         />
         <div className="mt-6">
-          <ProfileUpdateForm
-            user={{ username: user?.username!, email: user?.email! }}
-          />
-          <PasswordChangeForm />
-          <DeleteAccount />
+        
         </div>
       </div>
     </>
