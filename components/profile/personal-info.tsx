@@ -84,7 +84,11 @@ export default function PersonalInfo({ profile, onUpdate }: PersonalInfoProps) {
       // Log the data being sent for debugging
       console.log("Sending personal info data:", formData)
 
-      await updatePersonalInfo(formData)
+      await updatePersonalInfo({
+        ...formData,
+        education_level: formData.educationLevel,
+        career_preferences: formData.careerPreferences,
+      })
 
       setSuccess(true)
       toast({
