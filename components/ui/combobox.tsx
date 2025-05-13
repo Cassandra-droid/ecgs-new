@@ -84,7 +84,7 @@ export function Combobox({
                   className="flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                   onClick={handleCreateItem}
                 >
-                  Create "{inputValue}"
+                  Create &quot;{inputValue}&quot;
                 </button>
               ) : (
                 "No item found."

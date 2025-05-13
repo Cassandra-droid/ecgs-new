@@ -106,7 +106,7 @@ export default function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps)
               disabled
               className="bg-gray-50"
             />
-            <p className="text-xs text-muted-foreground">Email cannot be changed as it's linked to your account</p>
+            <p className="text-xs text-muted-foreground">Email cannot be changed as it&apos;s linked to your account</p>
           </div>
 
           <div className="space-y-2">

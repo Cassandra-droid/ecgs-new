@@ -75,7 +75,35 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+ 
+  // Process the assessment data to generate results
+  const processAssessmentData = (skills: SkillEntry[], careers: Career[]) => {
+    try {
+      // Calculate percentage scores by skill type
+      const percentageScores = calculatePercentageScores(skills)
+
+      // Categorize skills
+      const { strongSkills, skillsToImprove, missingSkills } = categorizeSkills(skills, careers)
+
+      // Generate career recommendations
+      const careerRecommendations = generateCareerRecommendations(skills, careers)
+
+      setResults({
+        percentageScores,
+        strongSkills,
+        skillsToImprove,
+        missingSkills,
+        careerRecommendations,
+      })
+
+      setLoading(false)
+    } catch (error) {
+      console.error("Error processing assessment data:", error)
+      setError("Failed to process assessment data. Please try again.")
+      setLoading(false)
+    }
+  }
+ useEffect(() => {
     const fetchData = async () => {
       try {
         // Get assessment data from localStorage
@@ -130,34 +158,6 @@ export default function ResultsPage() {
 
     fetchData()
   }, [])
-
-  // Process the assessment data to generate results
-  const processAssessmentData = (skills: SkillEntry[], careers: Career[]) => {
-    try {
-      // Calculate percentage scores by skill type
-      const percentageScores = calculatePercentageScores(skills)
-
-      // Categorize skills
-      const { strongSkills, skillsToImprove, missingSkills } = categorizeSkills(skills, careers)
-
-      // Generate career recommendations
-      const careerRecommendations = generateCareerRecommendations(skills, careers)
-
-      setResults({
-        percentageScores,
-        strongSkills,
-        skillsToImprove,
-        missingSkills,
-        careerRecommendations,
-      })
-
-      setLoading(false)
-    } catch (error) {
-      console.error("Error processing assessment data:", error)
-      setError("Failed to process assessment data. Please try again.")
-      setLoading(false)
-    }
-  }
 
   // Calculate percentage scores by skill type
   const calculatePercentageScores = (skills: SkillEntry[]): Record<string, number> => {

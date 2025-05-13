@@ -268,7 +268,7 @@ export default function SkillsSection({ skills, onUpdate }: SkillsSectionProps) 
                         onClick={() => handleAddSkill(searchTerm)}
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        Add "{searchTerm}" as a custom skill
+                        Add &quot;{searchTerm}&quot; as a custom skill
                       </Button>
                     </div>
                   ) : null}

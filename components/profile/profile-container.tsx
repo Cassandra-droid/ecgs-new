@@ -29,10 +29,6 @@ export default function ProfileContainer() {
     { id: "education", label: "Education" },
   ]
 
-  useEffect(() => {
-    fetchProfile()
-  }, [])
-
   const fetchProfile = async () => {
     try {
       setLoading(true)
@@ -52,6 +48,9 @@ export default function ProfileContainer() {
       setLoading(false)
     }
   }
+  useEffect(() => {
+    fetchProfile()
+  }, [])
 
   const checkProfileCompletion = (profileData: any) => {
     // Check if all required sections are complete
