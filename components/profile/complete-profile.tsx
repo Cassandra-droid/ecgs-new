@@ -87,7 +87,7 @@ export default function CompleteProfile({ profile }: CompleteProfileProps) {
       <Card>
         <CardHeader>
           <CardTitle>Complete Profile</CardTitle>
-          <CardDescription>Your profile is 100% complete. Here's how it looks.</CardDescription>
+          <CardDescription>Your profile is 100% complete. Here&apos;s how it looks.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center space-y-4 md:flex-row md:space-x-6 md:space-y-0">

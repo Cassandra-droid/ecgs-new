@@ -327,7 +327,7 @@ export default function InterestsSection({ interests, onUpdate }: InterestsSecti
                           onClick={handleAddCustomInterest}
                         >
                           <Plus className="mr-2 h-4 w-4" />
-                          Add "{searchTerm}" as a {customCategory} interest
+                          Add &quot;{searchTerm}&quot; as a {customCategory} interest
                         </Button>
                       </div>
                     </div>

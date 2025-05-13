@@ -460,7 +460,7 @@ export default function ResultsPage() {
           <h1 className="text-3xl font-bold">Assessment Results</h1>
         </div>
         <p className="text-muted-foreground">
-          Based on your skills and proficiency levels, we've analyzed your profile and prepared personalized
+          Based on your skills and proficiency levels, we&apos;ve analyzed your profile and prepared personalized
           recommendations.
         </p>
       </div>
@@ -681,7 +681,7 @@ export default function ResultsPage() {
                           {assessmentData.skills.filter((s) => s.score >= 3.5 && s.score < 4.5).length}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">Skills where you're highly proficient</p>
+                      <p className="text-xs text-muted-foreground">Skills where you&apos;re highly proficient</p>
                     </div>
                     <div className="p-3 rounded-lg border bg-amber-500/5 border-amber-500/20">
                       <div className="flex justify-between items-center mb-2">
