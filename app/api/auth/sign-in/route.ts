@@ -1,35 +1,38 @@
 import { NextResponse } from "next/server"
 import { api } from "@/lib/api"
-import { cookies } from "next/headers"
+import { serialize } from "cookie"
 import axios from "axios"
 
 export async function POST(request: Request) {
   try {
     const { email, password, callbackUrl } = await request.json()
 
+    // Send credentials to your backend API
     const response = await api.post("/api/auth/login/", {
       email,
       password,
     })
 
-    // Set the auth token in cookies
     const token = response.data.token
-    cookies().set({
-      name: "auth_token",
-      value: token,
+
+    // Serialize the cookie manually
+    const cookie = serialize("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     })
 
-    // Determine redirect URL based on user role
+    // Determine redirect destination
     const role = response.data.user?.role
-    const redirectUrl = role === "Admin" ? "/admin" : "/dashboard"
-    const finalCallbackUrl = callbackUrl && callbackUrl !== "" ? callbackUrl : redirectUrl
+    const defaultRedirect = role === "Admin" ? "/admin" : "/dashboard"
+    const finalCallbackUrl = callbackUrl && callbackUrl !== "" ? callbackUrl : defaultRedirect
 
-    return NextResponse.json({ callbackUrl: finalCallbackUrl })
+    // Create the response with Set-Cookie header
+    const res = NextResponse.json({ callbackUrl: finalCallbackUrl })
+    res.headers.set("Set-Cookie", cookie)
+    return res
   } catch (error) {
     console.error("Login error:", error)
 
@@ -40,4 +43,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }
-// This code defines a POST API route for handling user login.
