@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       name,
       email,
       password,
-    })
+    }, { withCredentials: true })
 
     return NextResponse.json({ message: "A verification link was sent to your email" })
   } catch (error) {

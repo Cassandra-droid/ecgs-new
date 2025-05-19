@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const response = await api.post("/api/auth/login/", {
       email,
       password,
-    })
+    },{ withCredentials: true })
 
     const token = response.data.token
 
