@@ -8,19 +8,16 @@ import { userLoginSchema } from "@/validation/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { EyeIcon, EyeOff } from "lucide-react"
 import Link from "next/link"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import toast from "react-hot-toast"
 import { ImSpinner2 } from "react-icons/im"
-import { useAuth } from "@/hooks/use-auth"
 
 const SignInForm = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const searchParams = useSearchParams()
-  const router = useRouter()
-  const { login, checkAuth } = useAuth()
 
   const message = searchParams.get("message")
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
@@ -32,24 +29,39 @@ const SignInForm = () => {
   const onSubmit = async (values: UserLoginSchemaType) => {
     try {
       setError(null)
-      const success = await login(values.email, values.password)
 
-      if (success) {
+      const res = await fetch("/api/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+          callbackUrl,
+        }),
+        credentials: "include", // Ensures cookies are sent/received
+      })
+
+      if (res.redirected) {
         toast.success("Login successful, redirecting...")
+        window.location.href = res.url
+        return
+      }
 
-        // Force a re-check of authentication status
-        await checkAuth()
+      const data = await res.json()
 
-        // Use window.location for a full page navigation
-        window.location.href = callbackUrl
+      if (res.ok) {
+        toast.success("Login successful, redirecting...")
+        window.location.href = data.callbackUrl
       } else {
-        setError("Invalid email or password")
-        toast.error("Login failed")
+        setError(data.error || "Invalid credentials")
+        toast.error(data.error || "Login failed")
       }
     } catch (error: any) {
       console.error("Login error:", error)
-      setError(error.response?.data?.error || "An error occurred")
-      toast.error("Login failed")
+      setError("An unexpected error occurred.")
+      toast.error("Login error")
     }
   }
 

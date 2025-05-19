@@ -7,32 +7,31 @@ export async function POST(request: Request) {
   try {
     const { email, password, callbackUrl } = await request.json()
 
-    // Send credentials to your backend API
-    const response = await api.post("/api/auth/login/", {
-      email,
-      password,
-    },{ withCredentials: true })
+    const response = await api.post(
+      "/api/auth/login/",
+      { email, password },
+      { withCredentials: true }
+    )
 
     const token = response.data.token
 
-    // Serialize the cookie manually
     const cookie = serialize("auth_token", token, {
       httpOnly: true,
       secure: true,
       sameSite: "none",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     })
 
-    // Determine redirect destination
     const role = response.data.user?.role
     const defaultRedirect = role === "Admin" ? "/admin" : "/dashboard"
     const finalCallbackUrl = callbackUrl && callbackUrl !== "" ? callbackUrl : defaultRedirect
 
-    // Create the response with Set-Cookie header
-    const res = NextResponse.json({ callbackUrl: finalCallbackUrl })
+    // ✅ Redirect instead of JSON
+    const res = NextResponse.redirect(new URL(finalCallbackUrl, request.url))
     res.headers.set("Set-Cookie", cookie)
     return res
+
   } catch (error) {
     console.error("Login error:", error)
 
