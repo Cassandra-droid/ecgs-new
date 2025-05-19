@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const { name, email, password } = await request.json()
 
-    const response = await api.post("/api/auth/register/", {
+    const response = await api.post("/api/signup/", {
       name,
       email,
       password,

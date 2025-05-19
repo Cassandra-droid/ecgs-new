@@ -12,7 +12,7 @@ export async function PUT(request: Request) {
     }
 
     const response = await api.put(
-      "/api/auth/change-password/",
+      "/api/change-password/",
       {
         currentPassword,
         newPassword,

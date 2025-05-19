@@ -26,7 +26,7 @@ export default function SignInForm() {
     const password = formData.get("password") as string
 
     try {
-      console.log("Submitting login form to /api/auth/sign-in")
+      console.log("Submitting login form to /api/signin")
 
       const response = await fetch("/api/auth/sign-in", {
         method: "POST",
