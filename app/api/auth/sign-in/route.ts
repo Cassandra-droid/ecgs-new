@@ -1,29 +1,41 @@
-// /app/api/signin/route.ts
+// /app/api/auth/sign-in/route.ts
 import { NextResponse } from "next/server"
-import { api } from "@/lib/api"
-import { serialize } from "cookie"
 import axios from "axios"
 
 export async function POST(request: Request) {
   try {
     const { email, password, callbackUrl } = await request.json()
 
-    const response = await api.post("/api/auth/login/", { email, password })
-
-    const token = response.data.token
-    const role = response.data.user?.role
-    const redirectUrl = callbackUrl || (role === "Admin" ? "/admin" : "/dashboard")
-
-    const cookie = serialize("auth_token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
+    // Forward login request to Django backend
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+      // This is crucial - allow credentials to pass through
+      credentials: "include",
     })
 
+    if (!response.ok) {
+      const errorData = await response.json()
+      return NextResponse.json({ error: errorData.error || "Invalid credentials" }, { status: response.status })
+    }
+
+    const data = await response.json()
+    const redirectUrl = callbackUrl || (data.user?.role === "Admin" ? "/admin" : "/dashboard")
+
+    // Get the Set-Cookie header from Django response
+    const cookieHeader = response.headers.get("Set-Cookie")
+
+    // Create response with redirect URL
     const res = NextResponse.json({ callbackUrl: redirectUrl })
-    res.headers.set("Set-Cookie", cookie)
+
+    // If there was a Set-Cookie header, forward it
+    if (cookieHeader) {
+      res.headers.set("Set-Cookie", cookieHeader)
+    }
+
     return res
   } catch (error) {
     console.error("Login error:", error)

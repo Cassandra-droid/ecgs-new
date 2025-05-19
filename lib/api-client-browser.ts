@@ -6,6 +6,21 @@ export const api = axios.create({
   withCredentials: true, // Important for cookies to be sent with requests
 })
 
+// Add interceptor to handle CSRF token
+api.interceptors.request.use((config) => {
+  // Get CSRF token from cookie if it exists
+  const csrfToken = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("csrftoken="))
+    ?.split("=")[1]
+
+  if (csrfToken) {
+    config.headers["X-CSRFToken"] = csrfToken
+  }
+
+  return config
+})
+
 // API response interface
 export interface ApiResponse {
   success: boolean
@@ -29,7 +44,22 @@ export function handleApiError(error: unknown): ApiResponse {
 // Auth-related API functions
 export const authApi = {
   login: async (email: string, password: string) => {
-    return api.post("/api/signin/", { email, password })
+    // Use fetch directly with credentials: 'include' for better cookie handling
+    const response = await fetch("/api/auth/sign-in", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+      credentials: "include",
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || "Login failed")
+    }
+
+    return await response.json()
   },
 
   logout: async () => {
@@ -37,7 +67,16 @@ export const authApi = {
   },
 
   getCurrentUser: async () => {
-    return api.get("/api/me/")
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/me/`, {
+      credentials: "include",
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to get current user")
+    }
+
+    const data = await response.json()
+    return { data }
   },
 
   register: async (userData: { username: string; email: string; password: string }) => {

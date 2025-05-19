@@ -1,83 +1,73 @@
-
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import axios from "axios"
-
-async function verifyToken(token: string) {
-  try {
-    console.log("Verifying session token:", token.substring(0, 10) + "...")
-
-    const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/verify-token`,
-      { token },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    )
-
-    if (response.status !== 200) {
-      console.error("Session verification failed:", response.statusText)
-      return null
-    }
-
-    console.log("Session verification successful")
-    return response.data.user
-  } catch (err) {
-    console.error("Error verifying session:", err)
-    return null
-  }
-}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   console.log("Middleware running on path:", pathname)
 
   // Skip middleware for static files and Next.js internals
-  if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.includes(".") ||
+    pathname === "/favicon.ico"
+  ) {
     return NextResponse.next()
   }
 
   // Route classification
-  const isAuthPage = ["/sign-in", "/sign-up"].includes(pathname)
-  const protectedRoutes = ["/dashboard", "/admin", "/profile"]
+  const isAuthPage = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"].includes(pathname)
+  const protectedRoutes = ["/dashboard", "/admin", "/profile", "/ai-advisor", "/skill-assessment"]
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
   const isAdminRoute = pathname.startsWith("/admin")
   const isUserDashboard = pathname.startsWith("/dashboard")
 
   // Get token from cookies
   const token = request.cookies.get("auth_token")?.value
-  console.log("Token present:", !!token)
+  console.log("Auth token in middleware:", token ? "Present" : "Not present")
 
-  // If token exists
+  // If token exists, verify it
   if (token) {
-    const user = await verifyToken(token)
-    console.log("User from token:", user ? "found" : "not found")
+    try {
+      // Verify token directly with your backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/verify-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token }),
+      })
 
-    if (user) {
-      const role = user.role
-      console.log("User role:", role)
+      // Check if token is valid
+      if (response.ok) {
+        const data = await response.json()
+        const user = data.user
+        const role = user?.role
 
-      if (isAuthPage) {
-        console.log("Redirecting from auth page to dashboard")
-        return NextResponse.redirect(new URL(role === "Admin" ? "/admin" : "/dashboard", request.url))
+        // Redirect authenticated users from auth pages to dashboard
+        if (isAuthPage) {
+          console.log("User already logged in, redirecting to dashboard")
+          return NextResponse.redirect(new URL(role === "Admin" ? "/admin" : "/dashboard", request.url))
+        }
+
+        // Check role-based access
+        if (isAdminRoute && role !== "Admin") {
+          return NextResponse.redirect(new URL("/", request.url))
+        }
+
+        // Route is allowed for user
+        return NextResponse.next()
+      } else {
+        // Token invalid, redirect to login and clear cookie
+        console.log("Invalid token, redirecting to sign-in")
+        const response = NextResponse.redirect(new URL("/sign-in", request.url))
+        // Clear the invalid cookie
+        response.cookies.delete("auth_token")
+        return response
       }
-
-      if (isAdminRoute && role !== "Admin") {
-        console.log("Non-admin trying to access admin route")
-        return NextResponse.redirect(new URL("/", request.url))
-      }
-
-      if (isUserDashboard && role === "Admin") {
-        console.log("Admin trying to access user dashboard")
-        return NextResponse.redirect(new URL("/admin", request.url))
-      }
-
-      console.log("Auth check passed, proceeding to route")
-      return NextResponse.next()
-    } else {
-      console.log("Invalid token, redirecting to sign-in")
+    } catch (err) {
+      console.error("Error verifying token:", err)
+      // On error, clear cookie and redirect to login
       const response = NextResponse.redirect(new URL("/sign-in", request.url))
       response.cookies.delete("auth_token")
       return response
@@ -93,7 +83,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow public routes
-  console.log("Allowing access to public page")
   return NextResponse.next()
 }
 
@@ -101,3 +90,4 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/|api/|.*\\..*).*)"],
 }
+
