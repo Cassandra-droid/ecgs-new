@@ -27,44 +27,44 @@ const SignInForm = () => {
   })
 
   const onSubmit = async (values: UserLoginSchemaType) => {
-  try {
-    setError(null)
+    try {
+      setError(null)
 
-    const res = await fetch("/api/signin", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: values.email,
-        password: values.password,
-        callbackUrl,
-      }),
-      credentials: "include", // needed for cookies to work
-    })
+      const res = await fetch("/api/auth/sign-in", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+          callbackUrl,
+        }),
+        credentials: "include", // needed for cookies to work
+      })
 
-    const contentType = res.headers.get("content-type")
-    let data = null
+      const contentType = res.headers.get("content-type")
+      let data = null
 
-    if (contentType?.includes("application/json")) {
-      data = await res.json()
+      if (contentType?.includes("application/json")) {
+        data = await res.json()
+      }
+
+      if (!res.ok) {
+        const message = data?.error || "Login failed"
+        setError(message)
+        toast.error(message)
+        return
+      }
+
+      toast.success("Login successful, redirecting...")
+      window.location.href = data.callbackUrl
+    } catch (error: any) {
+      console.error("Login error:", error)
+      setError(error.message || "An unexpected error occurred.")
+      toast.error("Login failed")
     }
-
-    if (!res.ok) {
-      const message = data?.error || "Login failed"
-      setError(message)
-      toast.error(message)
-      return
-    }
-
-    toast.success("Login successful, redirecting...")
-    window.location.href = data.callbackUrl
-  } catch (error: any) {
-    console.error("Login error:", error)
-    setError(error.message || "An unexpected error occurred.")
-    toast.error("Login failed")
   }
-}
 
   return (
     <div>
