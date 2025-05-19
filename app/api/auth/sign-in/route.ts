@@ -1,3 +1,4 @@
+// /app/api/signin/route.ts
 import { NextResponse } from "next/server"
 import { api } from "@/lib/api"
 import { serialize } from "cookie"
@@ -7,13 +8,11 @@ export async function POST(request: Request) {
   try {
     const { email, password, callbackUrl } = await request.json()
 
-    const response = await api.post(
-      "/api/auth/login/",
-      { email, password },
-      { withCredentials: true }
-    )
+    const response = await api.post("/api/auth/login/", { email, password })
 
     const token = response.data.token
+    const role = response.data.user?.role
+    const redirectUrl = callbackUrl || (role === "Admin" ? "/admin" : "/dashboard")
 
     const cookie = serialize("auth_token", token, {
       httpOnly: true,
@@ -23,15 +22,9 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7,
     })
 
-    const role = response.data.user?.role
-    const defaultRedirect = role === "Admin" ? "/admin" : "/dashboard"
-    const finalCallbackUrl = callbackUrl && callbackUrl !== "" ? callbackUrl : defaultRedirect
-
-    // ✅ Redirect instead of JSON
-    const res = NextResponse.redirect(new URL(finalCallbackUrl, request.url))
+    const res = NextResponse.json({ callbackUrl: redirectUrl })
     res.headers.set("Set-Cookie", cookie)
     return res
-
   } catch (error) {
     console.error("Login error:", error)
 

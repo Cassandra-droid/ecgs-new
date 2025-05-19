@@ -40,36 +40,29 @@ const SignInForm = () => {
         password: values.password,
         callbackUrl,
       }),
-      credentials: "include",
+      credentials: "include", // needed for cookies to work
     })
 
-    // Handle redirection case
-    if (res.redirected) {
-      toast.success("Login successful, redirecting...")
-      window.location.href = res.url
+    const contentType = res.headers.get("content-type")
+    let data = null
+
+    if (contentType?.includes("application/json")) {
+      data = await res.json()
+    }
+
+    if (!res.ok) {
+      const message = data?.error || "Login failed"
+      setError(message)
+      toast.error(message)
       return
     }
 
-    // Try parsing JSON response safely
-    let data = null
-    try {
-      data = await res.json()
-    } catch (err) {
-      throw new Error("Invalid server response. Could not parse JSON.")
-    }
-
-    if (res.ok) {
-      toast.success("Login successful, redirecting...")
-      window.location.href = data.callbackUrl
-    } else {
-      const message = data?.error || "Invalid credentials"
-      setError(message)
-      toast.error(message)
-    }
+    toast.success("Login successful, redirecting...")
+    window.location.href = data.callbackUrl
   } catch (error: any) {
     console.error("Login error:", error)
     setError(error.message || "An unexpected error occurred.")
-    toast.error("Login error")
+    toast.error("Login failed")
   }
 }
 
