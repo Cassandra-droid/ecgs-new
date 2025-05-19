@@ -1,163 +1,109 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import type { UserLoginSchemaType } from "@/types"
-import { userLoginSchema } from "@/validation/schemas"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { EyeIcon, EyeOff } from "lucide-react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import type React from "react"
+
 import { useState } from "react"
-import { useForm } from "react-hook-form"
-import toast from "react-hot-toast"
-import { ImSpinner2 } from "react-icons/im"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
 
-const SignInForm = () => {
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const searchParams = useSearchParams()
+export default function SignInForm() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const router = useRouter()
+  const { toast } = useToast()
 
-  const message = searchParams.get("message")
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsLoading(true)
+    setError("")
 
-  const form = useForm<UserLoginSchemaType>({
-    resolver: zodResolver(userLoginSchema),
-  })
+    const formData = new FormData(event.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
 
-  const onSubmit = async (values: UserLoginSchemaType) => {
     try {
-      setError(null)
+      console.log("Submitting login form to /api/auth/sign-in")
 
-      const res = await fetch("/api/auth/sign-in", {
+      const response = await fetch("/api/auth/sign-in", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: values.email,
-          password: values.password,
-          callbackUrl,
-        }),
-        credentials: "include", // needed for cookies to work
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
       })
 
-      const contentType = res.headers.get("content-type")
-      let data = null
+      console.log("Login response status:", response.status)
 
-      if (contentType?.includes("application/json")) {
-        data = await res.json()
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Login failed" }))
+        throw new Error(errorData.error || "Login failed")
       }
 
-      if (!res.ok) {
-        const message = data?.error || "Login failed"
-        setError(message)
-        toast.error(message)
-        return
-      }
+      const data = await response.json()
+      console.log("Login successful:", data)
 
-      toast.success("Login successful, redirecting...")
-      window.location.href = data.callbackUrl
-    } catch (error: any) {
+      toast({
+        title: "Success",
+        description: "You have successfully signed in.",
+      })
+
+      // Redirect to dashboard after successful login
+      router.push("/dashboard")
+      router.refresh()
+    } catch (error) {
       console.error("Login error:", error)
-      setError(error.message || "An unexpected error occurred.")
-      toast.error("Login failed")
+      setError(error instanceof Error ? error.message : "An unexpected error occurred")
+
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sign in",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <div>
-      <h1 className="mb-4 text-center text-2xl font-semibold">Login to your account</h1>
-      {error && (
-        <div className="my-2 rounded-lg bg-red-500/20 p-2">
-          <span className="text-red-500">{error}</span>
+    <div className="mx-auto max-w-sm space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="text-3xl font-bold">Sign In</h1>
+        <p className="text-gray-500 dark:text-gray-400">Enter your credentials to access your account</p>
+      </div>
+      <form onSubmit={onSubmit} className="space-y-4">
+        {error && (
+          <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950/30 dark:text-red-400 rounded-md">
+            {error}
+          </div>
+        )}
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" placeholder="m@example.com" required disabled={isLoading} />
         </div>
-      )}
-      {message && (
-        <div className="my-2 rounded-lg bg-green-500/20 p-2">
-          <span className="text-green-500">{message}</span>
-        </div>
-      )}
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    placeholder="Email"
-                    className="bg-transparent"
-                    disabled={form.formState.isSubmitting}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <div
-                      className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeIcon className="h-5 w-5 text-slate-600 dark:text-slate-200" />
-                      ) : (
-                        <EyeOff className="h-5 w-5 text-slate-600 dark:text-slate-200" />
-                      )}
-                    </div>
-                    <Input
-                      {...field}
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      className="bg-transparent"
-                      disabled={form.formState.isSubmitting}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="mt-2 flex justify-end">
-            <Link href="/forgot-password" className="text-sm text-brand underline">
-              Forgot Password?
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            <Link href="/forgot-password" className="text-sm text-primary underline-offset-4 hover:underline">
+              Forgot password?
             </Link>
           </div>
-          <div className="mt-5">
-            <Button type="submit" className="w-full rounded-lg" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <div className="flex items-center justify-center gap-x-2">
-                  <ImSpinner2 className="animate-spin text-lg" />
-                  <span>Processing...</span>
-                </div>
-              ) : (
-                "Sign In"
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
-
-      <div className="mt-4 text-center">
-        <span className="text-sm">Don&apos;t have an account? </span>
-        <Link href="/sign-up" className="text-sm text-brand hover:underline">
+          <Input id="password" name="password" type="password" required disabled={isLoading} />
+        </div>
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Signing in..." : "Sign In"}
+        </Button>
+      </form>
+      <div className="text-center text-sm">
+        Don&apos;t have an account?{" "}
+        <Link href="/sign-up" className="text-primary underline-offset-4 hover:underline">
           Sign up
         </Link>
       </div>
     </div>
   )
 }
-
-export default SignInForm
