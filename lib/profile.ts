@@ -236,23 +236,18 @@ export async function updatePersonalInfo(data: PersonalInfo): Promise<ApiRespons
   }
 }
 
-// Update skills to match ProfileSkill model
-export async function updateUserSkills(skills: string[]): Promise<ApiResponse> {
+// Update the updateUserSkills function to accept an array of skill objects with levels
+export async function updateUserSkills(skills: { name: string; level: string }[]): Promise<ApiResponse> {
   const token = await verifyTokenFromCookie()
   if (!token) throw new Error("Invalid or missing token")
 
   try {
-    // Format skills as objects with name property to match ProfileSkill model
-    const formattedSkills = skills.map((skill) => ({
-      name: skill,
-      level: "Intermediate", // Default level
-    }))
-
-    console.log("Sending skills data:", JSON.stringify({ skills: formattedSkills }))
+    // Skills are already formatted with name and level properties
+    console.log("Sending skills data:", JSON.stringify({ skills }))
 
     const response = await api.put<ApiResponse>(
       "/api/skills/",
-      { skills: formattedSkills },
+      { skills },
       {
         headers: {
           Authorization: `Bearer ${token}`,

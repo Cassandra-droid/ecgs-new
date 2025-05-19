@@ -9,8 +9,25 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { updateUserSkills } from "@/lib/profile"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Plus, X, Search, CheckCircle2 } from "lucide-react"
+import { Loader2, Plus, X, Search, CheckCircle2, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 // Predefined skills list with categories
 const PREDEFINED_SKILLS = [
@@ -73,6 +90,11 @@ export default function SkillsSection({ skills, onUpdate }: SkillsSectionProps) 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const { toast } = useToast()
 
+  // Add a state for the skill level selection modal
+  const [isAddingSkill, setIsAddingSkill] = useState(false)
+  const [skillToAdd, setSkillToAdd] = useState("")
+  const [selectedLevel, setSelectedLevel] = useState("Intermediate")
+
   // Initialize user skills from props
   useEffect(() => {
     if (skills && skills.length > 0) {
@@ -94,6 +116,7 @@ export default function SkillsSection({ skills, onUpdate }: SkillsSectionProps) 
   // Get unique categories
   const categories = Object.keys(SKILL_CATEGORIES).sort()
 
+  // Replace the handleAddSkill function with this version that opens the skill level selection modal
   const handleAddSkill = (skillName: string) => {
     if (!skillName.trim()) {
       toast({
@@ -114,22 +137,38 @@ export default function SkillsSection({ skills, onUpdate }: SkillsSectionProps) 
       return
     }
 
-    const newSkillObj = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      name: skillName,
-      level: "Intermediate", // Default level
-    }
-
-    setUserSkills([...userSkills, newSkillObj])
+    // Set the skill to add and open the level selection modal
+    setSkillToAdd(skillName)
+    setSelectedLevel("Intermediate") // Reset to default
+    setIsAddingSkill(true)
     setSearchTerm("")
     setCustomSkill("")
     setShowSuggestions(false)
   }
 
+  // Add a function to confirm adding the skill with the selected level
+  const confirmAddSkill = () => {
+    const newSkillObj = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      name: skillToAdd,
+      level: selectedLevel,
+    }
+
+    setUserSkills([...userSkills, newSkillObj])
+    setIsAddingSkill(false)
+  }
+
+  // Add a function to update the skill level of an existing skill
+  const updateSkillLevel = (skillId: string, newLevel: string) => {
+    setUserSkills(userSkills.map((skill) => (skill.id === skillId ? { ...skill, level: newLevel } : skill)))
+  }
+
+  // Function to handle removing a skill
   const handleRemoveSkill = (skillId: string) => {
     setUserSkills(userSkills.filter((skill) => skill.id !== skillId))
   }
 
+  // Add this to the updateUserSkills function to properly send skill levels
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSuccess(false)
@@ -145,9 +184,9 @@ export default function SkillsSection({ skills, onUpdate }: SkillsSectionProps) 
 
     try {
       setLoading(true)
-      // Extract just the skill names for the API call
-      const skillNames = userSkills.map((skill) => skill.name)
-      await updateUserSkills(skillNames)
+      // Send only the skill names as required by updateUserSkills
+      const skillsData = userSkills.map((skill) => skill.name)
+      await updateUserSkills(skillsData)
 
       setSuccess(true)
       toast({
@@ -341,20 +380,80 @@ export default function SkillsSection({ skills, onUpdate }: SkillsSectionProps) 
             ) : (
               <div className="flex flex-wrap gap-2">
                 {userSkills.map((skill) => (
-                  <Badge key={skill.id} variant="secondary" className="flex items-center gap-1 px-3 py-1.5">
-                    <span>{skill.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSkill(skill.id)}
-                      className="ml-1 rounded-full p-0.5 hover:bg-gray-200"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
+                  <div key={skill.id} className="flex items-center gap-2">
+                    <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1.5">
+                      <span>{skill.name}</span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 px-1">
+                            <span className="text-xs font-normal text-muted-foreground">{skill.level}</span>
+                            <ChevronDown className="ml-1 h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Skill Level</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => updateSkillLevel(skill.id, "Beginner")}>
+                            Beginner
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateSkillLevel(skill.id, "Intermediate")}>
+                            Intermediate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateSkillLevel(skill.id, "Advanced")}>
+                            Advanced
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateSkillLevel(skill.id, "Expert")}>
+                            Expert
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSkill(skill.id)}
+                        className="ml-1 rounded-full p-0.5 hover:bg-gray-200"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  </div>
                 ))}
               </div>
             )}
           </div>
+          <Dialog open={isAddingSkill} onOpenChange={(open) => !open && setIsAddingSkill(false)}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Select Skill Level</DialogTitle>
+                <DialogDescription>Choose your proficiency level for "{skillToAdd}"</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <RadioGroup value={selectedLevel} onValueChange={setSelectedLevel} className="grid grid-cols-1 gap-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Beginner" id="beginner" />
+                    <Label htmlFor="beginner">Beginner</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Intermediate" id="intermediate" />
+                    <Label htmlFor="intermediate">Intermediate</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Advanced" id="advanced" />
+                    <Label htmlFor="advanced">Advanced</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Expert" id="expert" />
+                    <Label htmlFor="expert">Expert</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddingSkill(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={confirmAddSkill}>Add Skill</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
         <CardFooter>
           <Button type="submit" disabled={loading} className="w-full">
