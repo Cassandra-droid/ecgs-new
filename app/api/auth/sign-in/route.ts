@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const { email, password } = body
 
     // Get the backend URL from environment variable or use a default
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://your-django-backend.railway.app"
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL
 
     console.log(`Attempting to sign in with email: ${email}`)
     console.log(`Using backend URL: ${backendUrl}/api/auth/login/`)
