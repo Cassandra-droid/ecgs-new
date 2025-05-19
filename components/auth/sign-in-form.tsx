@@ -27,43 +27,51 @@ const SignInForm = () => {
   })
 
   const onSubmit = async (values: UserLoginSchemaType) => {
-    try {
-      setError(null)
+  try {
+    setError(null)
 
-      const res = await fetch("/api/signin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: values.email,
-          password: values.password,
-          callbackUrl,
-        }),
-        credentials: "include", // Ensures cookies are sent/received
-      })
+    const res = await fetch("/api/signin", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: values.email,
+        password: values.password,
+        callbackUrl,
+      }),
+      credentials: "include",
+    })
 
-      if (res.redirected) {
-        toast.success("Login successful, redirecting...")
-        window.location.href = res.url
-        return
-      }
-
-      const data = await res.json()
-
-      if (res.ok) {
-        toast.success("Login successful, redirecting...")
-        window.location.href = data.callbackUrl
-      } else {
-        setError(data.error || "Invalid credentials")
-        toast.error(data.error || "Login failed")
-      }
-    } catch (error: any) {
-      console.error("Login error:", error)
-      setError("An unexpected error occurred.")
-      toast.error("Login error")
+    // Handle redirection case
+    if (res.redirected) {
+      toast.success("Login successful, redirecting...")
+      window.location.href = res.url
+      return
     }
+
+    // Try parsing JSON response safely
+    let data = null
+    try {
+      data = await res.json()
+    } catch (err) {
+      throw new Error("Invalid server response. Could not parse JSON.")
+    }
+
+    if (res.ok) {
+      toast.success("Login successful, redirecting...")
+      window.location.href = data.callbackUrl
+    } else {
+      const message = data?.error || "Invalid credentials"
+      setError(message)
+      toast.error(message)
+    }
+  } catch (error: any) {
+    console.error("Login error:", error)
+    setError(error.message || "An unexpected error occurred.")
+    toast.error("Login error")
   }
+}
 
   return (
     <div>
