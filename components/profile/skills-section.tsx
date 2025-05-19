@@ -184,8 +184,11 @@ export default function SkillsSection({ skills, onUpdate }: SkillsSectionProps) 
 
     try {
       setLoading(true)
-      // Send only the skill names as required by updateUserSkills
-      const skillsData = userSkills.map((skill) => skill.name)
+      // Send the full skill objects with name and level
+      const skillsData = userSkills.map((skill) => ({
+        name: skill.name,
+        level: skill.level,
+      }))
       await updateUserSkills(skillsData)
 
       setSuccess(true)
@@ -424,7 +427,7 @@ export default function SkillsSection({ skills, onUpdate }: SkillsSectionProps) 
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Select Skill Level</DialogTitle>
-                <DialogDescription>Choose your proficiency level for "{skillToAdd}"</DialogDescription>
+                <DialogDescription>Choose your proficiency level for &quot;{skillToAdd}&quot;</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <RadioGroup value={selectedLevel} onValueChange={setSelectedLevel} className="grid grid-cols-1 gap-2">
